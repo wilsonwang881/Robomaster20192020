@@ -1,14 +1,20 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       INSTask.c/h
-  * @brief      Ö÷ÒªÀûÓÃÍÓÂİÒÇmpu6500£¬´ÅÁ¦¼Æist8310£¬Íê³É×ËÌ¬½âËã£¬µÃ³öÅ·À­½Ç£¬
-  *             Ìá¹©Í¨¹ımpu6500µÄdata ready ÖĞ¶ÏÍê³ÉÍâ²¿´¥·¢£¬¼õÉÙÊı¾İµÈ´ıÑÓ³Ù
-  *             Í¨¹ıDMAµÄSPI´«Êä½ÚÔ¼CPUÊ±¼ä£¬Ìá¹©×¢ÊÍ¶ÔÓ¦µÄºê¶¨Òå£¬¹Ø±ÕDMA£¬
-  *             DRµÄÍâ²¿ÖĞ¶ÏµÄ·½Ê½.
-  * @note       SPI ÔÚÍÓÂİÒÇ³õÊ¼»¯µÄÊ±ºòĞèÒªµÍÓÚ2MHz£¬Ö®ºó¶ÁÈ¡Êı¾İĞèµÍÓÚ20MHz
+  * @brief      ä¸»è¦åˆ©ç”¨é™€èºä»ªmpu6500ï¼Œç£åŠ›è®¡ist8310ï¼Œå®Œæˆå§¿æ€è§£ç®—ï¼Œå¾—å‡ºæ¬§æ‹‰è§’ï¼Œ
+  *             æä¾›é€šè¿‡mpu6500çš„data ready ä¸­æ–­å®Œæˆå¤–éƒ¨è§¦å‘ï¼Œå‡å°‘æ•°æ®ç­‰å¾…å»¶è¿Ÿ
+  *             é€šè¿‡DMAçš„SPIä¼ è¾“èŠ‚çº¦CPUæ—¶é—´ï¼Œæä¾›æ³¨é‡Šå¯¹åº”çš„å®å®šä¹‰ï¼Œå…³é—­DMAï¼Œ
+  *             DRçš„å¤–éƒ¨ä¸­æ–­çš„æ–¹å¼.
+  * 
+  *             Seems to use the MPU6500(gyro+accelerometer) and IST8310(magnetometer)
+  *             to calculate 3d position of turret, and the euler angle. Through the SPI
+  *             of DMA transmission save CPU time, provide the annotation corresponding 
+  *             macro definition, close the DMA
+  * 
+  * @note       SPI åœ¨é™€èºä»ªåˆå§‹åŒ–çš„æ—¶å€™éœ€è¦ä½äº2MHzï¼Œä¹‹åè¯»å–æ•°æ®éœ€ä½äº20MHz
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ
   *
   @verbatim
   ==============================================================================
@@ -40,26 +46,26 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define IMUWarnBuzzerOn() buzzer_on(95, 10000) //¿ª»úÍÓÂİÒÇĞ£×¼·äÃùÆ÷
+#define IMUWarnBuzzerOn() buzzer_on(95, 10000) //å¼€æœºé™€èºä»ªæ ¡å‡†èœ‚é¸£å™¨
 
-#define IMUWarnBuzzerOFF() buzzer_off() //¿ª»úÍÓÂİÒÇĞ£×¼·äÃùÆ÷¹Ø±Õ
+#define IMUWarnBuzzerOFF() buzzer_off() //å¼€æœºé™€èºä»ªæ ¡å‡†èœ‚é¸£å™¨å…³é—­
 
-#define MPU6500_TEMPERATURE_PWM_INIT() TIM3_Init(MPU6500_TEMP_PWM_MAX, 1) //ÍÓÂİÒÇÎÂ¶È¿ØÖÆPWM³õÊ¼»¯
-#define IMUTempPWM(pwm) TIM_SetCompare2(TIM3, (pwm))                      //pwm¸ø¶¨
-#define INS_GET_CONTROL_TEMPERATURE() get_control_temperate()             //»ñÈ¡¿ØÖÆÎÂ¶ÈµÄÄ¿±êÖµ
+#define MPU6500_TEMPERATURE_PWM_INIT() TIM3_Init(MPU6500_TEMP_PWM_MAX, 1) //é™€èºä»ªæ¸©åº¦æ§åˆ¶PWMåˆå§‹åŒ–
+#define IMUTempPWM(pwm) TIM_SetCompare2(TIM3, (pwm))                      //pwmç»™å®š
+#define INS_GET_CONTROL_TEMPERATURE() get_control_temperate()             //è·å–æ§åˆ¶æ¸©åº¦çš„ç›®æ ‡å€¼
 
 #if defined(MPU6500_USE_DATA_READY_EXIT)
 
-#define MPU6500_DATA_READY_EXIT_INIT() GPIOB_Exti8_GPIO_Init() //³õÊ¼»¯mpu6500µÄ Íâ²¿ÖĞ¶Ï Ê¹ÓÃPB8 Íâ²¿ÖĞ¶ÏÏß 8
+#define MPU6500_DATA_READY_EXIT_INIT() GPIOB_Exti8_GPIO_Init() //åˆå§‹åŒ–mpu6500çš„ å¤–éƒ¨ä¸­æ–­ ä½¿ç”¨PB8 å¤–éƒ¨ä¸­æ–­çº¿ 8
 
-#define MPU6500_DATA_READY_EXIT_IRQHandler EXTI9_5_IRQHandler //ºê¶¨ÒåÍâ²¿ÖĞ¶Ïº¯Êı£¬Ê¹ÓÃÁËline8Íâ²¿ÖĞ¶Ï
+#define MPU6500_DATA_READY_EXIT_IRQHandler EXTI9_5_IRQHandler //å®å®šä¹‰å¤–éƒ¨ä¸­æ–­å‡½æ•°ï¼Œä½¿ç”¨äº†line8å¤–éƒ¨ä¸­æ–­
 
-#define MPU6500_DATA_READY_EXIT_Line EXTI_Line8 //ºê¶¨ÒåÍâ²¿ÖĞ¶ÏÏß
+#define MPU6500_DATA_READY_EXIT_Line EXTI_Line8 //å®å®šä¹‰å¤–éƒ¨ä¸­æ–­çº¿
 #endif
 
 #if defined(MPU6500_USE_SPI) && defined(MPU6500_USE_SPI_DMA)
 
-//ºê¶¨Òå³õÊ¼»¯SPIµÄDMA£¬Í¬Ê±ÉèÖÃSPIÎª8Î»£¬4·ÖÆµ
+//å®å®šä¹‰åˆå§‹åŒ–SPIçš„DMAï¼ŒåŒæ—¶è®¾ç½®SPIä¸º8ä½ï¼Œ4åˆ†é¢‘
 #define MPU6500_SPI_DMA_Init(txbuf, rxbuf)                                 \
     {                                                                      \
         SPI5_DMA_Init((uint32_t)txbuf, (uint32_t)rxbuf, DMA_RX_NUM);       \
@@ -68,8 +74,8 @@
         SPI5SetSpeedAndDataSize(SPI_BaudRatePrescaler_8, SPI_DataSize_8b); \
     }
 
-#define MPU6500_SPI_DMA_Enable() SPI5_DMA_Enable(DMA_RX_NUM) // ¿ªÊ¼Ò»´ÎSPIµÄDMA´«Êä
-//ºê¶¨ÒåSPIµÄDMA´«ÊäÖĞ¶Ïº¯ÊıÒÔ¼°´«ÊäÖĞ¶Ï±êÖ¾Î»
+#define MPU6500_SPI_DMA_Enable() SPI5_DMA_Enable(DMA_RX_NUM) // å¼€å§‹ä¸€æ¬¡SPIçš„DMAä¼ è¾“
+//å®å®šä¹‰SPIçš„DMAä¼ è¾“ä¸­æ–­å‡½æ•°ä»¥åŠä¼ è¾“ä¸­æ–­æ ‡å¿—ä½
 #define MPU6500_DMA_IRQHandler DMA2_Stream5_IRQHandler
 #define MPU6500_DMA_Stream DMA2_Stream5
 #define MPU6500_DMA_FLAG DMA_FLAG_TCIF5
@@ -77,12 +83,12 @@
 #error "the communication of mpu6500 is not SPI, can't use the DMA"
 #endif
 
-//Èç¹ûÊ¹ÓÃmpu6500µÄÊı¾İ×¼±¸Íâ²¿ÖĞ¶Ï£¬¿ÉÒÔÊ¹ÓÃÈÎÎñÍ¨Öª·½·¨»½ĞÑÈÎÎñ
+//å¦‚æœä½¿ç”¨mpu6500çš„æ•°æ®å‡†å¤‡å¤–éƒ¨ä¸­æ–­ï¼Œå¯ä»¥ä½¿ç”¨ä»»åŠ¡é€šçŸ¥æ–¹æ³•å”¤é†’ä»»åŠ¡
 #if defined(MPU6500_USE_DATA_READY_EXIT) || defined(MPU6500_USE_SPI_DMA)
 static TaskHandle_t INSTask_Local_Handler;
 #endif
 
-//DMAµÄSPI ·¢ËÍµÄbuf£¬ÒÔINT_STATUS¿ªÊ¼Á¬Ğø¶ÁÈ¡ DMA_RX_NUM´óĞ¡µØÖ·µÄÖµ
+//DMAçš„SPI å‘é€çš„bufï¼Œä»¥INT_STATUSå¼€å§‹è¿ç»­è¯»å– DMA_RX_NUMå¤§å°åœ°å€çš„å€¼
 #if defined(MPU6500_USE_SPI_DMA)
 static const uint8_t mpu6500_spi_DMA_txbuf[DMA_RX_NUM] =
     {
@@ -98,30 +104,30 @@ uint32_t INSTaskStack;
                                         {-1.0f, 0.0f, 0.0f},    \
                                         { 0.0f, 0.0f, 1.0f}    \
 
-//´¦ÀíÍÓÂİÒÇ£¬¼ÓËÙ¶È¼Æ£¬´ÅÁ¦¼ÆÊı¾İµÄÏßĞÔ¶È£¬ÁãÆ¯
+//å¤„ç†é™€èºä»ªï¼ŒåŠ é€Ÿåº¦è®¡ï¼Œç£åŠ›è®¡æ•°æ®çš„çº¿æ€§åº¦ï¼Œé›¶æ¼‚
 static void IMU_Cali_Slove(fp32 gyro[3], fp32 accel[3], fp32 mag[3], mpu6500_real_data_t *mpu6500, ist8310_real_data_t *ist8310);
 static void IMU_temp_Control(fp32 temp);
 
-static uint8_t mpu6500_spi_rxbuf[DMA_RX_NUM]; //±£´æ½ÓÊÕµÄÔ­Ê¼Êı¾İ
-static mpu6500_real_data_t mpu6500_real_data; //×ª»»³É¹ú¼Êµ¥Î»µÄMPU6500Êı¾İ
-static fp32 Gyro_Scale_Factor[3][3] = {IMU_BOARD_INSTALL_SPIN_MATRIX}; //ÍÓÂİÒÇĞ£×¼ÏßĞÔ¶È
+static uint8_t mpu6500_spi_rxbuf[DMA_RX_NUM]; //ä¿å­˜æ¥æ”¶çš„åŸå§‹æ•°æ®
+static mpu6500_real_data_t mpu6500_real_data; //è½¬æ¢æˆå›½é™…å•ä½çš„MPU6500æ•°æ®
+static fp32 Gyro_Scale_Factor[3][3] = {IMU_BOARD_INSTALL_SPIN_MATRIX}; //é™€èºä»ªæ ¡å‡†çº¿æ€§åº¦
 static fp32 gyro_cali_offset[3] ={0.0f, 0.0f, 0.0f};
-static fp32 Gyro_Offset[3] = {0.0f, 0.0f, 0.0f};            //ÍÓÂİÒÇÁãÆ¯
-static fp32 Accel_Scale_Factor[3][3] = {IMU_BOARD_INSTALL_SPIN_MATRIX}; //¼ÓËÙ¶ÈĞ£×¼ÏßĞÔ¶È
-static fp32 Accel_Offset[3] = {0.0f, 0.0f, 0.0f};            //¼ÓËÙ¶ÈÁãÆ¯
-static ist8310_real_data_t ist8310_real_data;                //×ª»»³É¹ú¼Êµ¥Î»µÄIST8310Êı¾İ
+static fp32 Gyro_Offset[3] = {0.0f, 0.0f, 0.0f};            //é™€èºä»ªé›¶æ¼‚
+static fp32 Accel_Scale_Factor[3][3] = {IMU_BOARD_INSTALL_SPIN_MATRIX}; //åŠ é€Ÿåº¦æ ¡å‡†çº¿æ€§åº¦
+static fp32 Accel_Offset[3] = {0.0f, 0.0f, 0.0f};            //åŠ é€Ÿåº¦é›¶æ¼‚
+static ist8310_real_data_t ist8310_real_data;                //è½¬æ¢æˆå›½é™…å•ä½çš„IST8310æ•°æ®
 static fp32 Mag_Scale_Factor[3][3] = {{1.0f, 0.0f, 0.0f},
                                       {0.0f, 1.0f, 0.0f},
-                                      {0.0f, 0.0f, 1.0f}}; //´ÅÁ¦¼ÆĞ£×¼ÏßĞÔ¶È
-static fp32 Mag_Offset[3] = {0.0f, 0.0f, 0.0f};            //´ÅÁ¦¼ÆÁãÆ¯
-static const float TimingTime = INS_DELTA_TICK * 0.001f;   //ÈÎÎñÔËĞĞµÄÊ±¼ä µ¥Î» s
+                                      {0.0f, 0.0f, 1.0f}}; //ç£åŠ›è®¡æ ¡å‡†çº¿æ€§åº¦
+static fp32 Mag_Offset[3] = {0.0f, 0.0f, 0.0f};            //ç£åŠ›è®¡é›¶æ¼‚
+static const float TimingTime = INS_DELTA_TICK * 0.001f;   //ä»»åŠ¡è¿è¡Œçš„æ—¶é—´ å•ä½ s
 
 static fp32 INS_gyro[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_accel[3] = {0.0f, 0.0f, 0.0f};
 static fp32 INS_mag[3] = {0.0f, 0.0f, 0.0f};
 
-static fp32 INS_Angle[3] = {0.0f, 0.0f, 0.0f};      //Å·À­½Ç µ¥Î» rad
-static fp32 INS_quat[4] = {0.0f, 0.0f, 0.0f, 0.0f}; //ËÄÔªÊı
+static fp32 INS_Angle[3] = {0.0f, 0.0f, 0.0f};      //æ¬§æ‹‰è§’ å•ä½ rad
+static fp32 INS_quat[4] = {0.0f, 0.0f, 0.0f, 0.0f}; //å››å…ƒæ•°
 
 static const fp32 imuTempPID[3] = {MPU6500_TEMPERATURE_PID_KP, MPU6500_TEMPERATURE_PID_KI, MPU6500_TEMPERATURE_PID_KD};
 static PidTypeDef imuTempPid;
@@ -132,37 +138,37 @@ void INSTask(void *pvParameters)
 {
 
     vTaskDelay(INS_TASK_INIT_TIME);
-    //³õÊ¼»¯mpu6500£¬Ê§°Ü½øÈëËÀÑ­»·
-    while (mpu6500_init() != MPU6500_NO_ERROR)
+    //åˆå§‹åŒ–mpu6500ï¼Œå¤±è´¥è¿›å…¥æ­»å¾ªç¯
+    while (mpu6500_init() != MPU6500_NO_ERROR) //wait until mpu is ready/connects
     {
         ;
     }
 
-//³õÊ¼»¯ist8310£¬Ê§°Ü½øÈëËÀÑ­»·
+//åˆå§‹åŒ–ist8310ï¼Œå¤±è´¥è¿›å…¥æ­»å¾ªç¯
 #if defined(USE_IST8310)
-    while (ist8310_init() != IST8310_NO_ERROR)
+    while (ist8310_init() != IST8310_NO_ERROR) // wait until magnetometer connects
     {
         ;
     }
 #endif
 
 #if defined(MPU6500_USE_DATA_READY_EXIT) || defined(MPU6500_USE_SPI_DMA)
-    //»ñÈ¡µ±Ç°ÈÎÎñµÄÈÎÎñ¾ä±ú£¬ÓÃÓÚÈÎÎñÍ¨Öª
+    //è·å–å½“å‰ä»»åŠ¡çš„ä»»åŠ¡å¥æŸ„ï¼Œç”¨äºä»»åŠ¡é€šçŸ¥
     INSTask_Local_Handler = xTaskGetHandle(pcTaskGetName(NULL));
 #endif
 
 #if defined(MPU6500_USE_DATA_READY_EXIT)
-    //³õÊ¼»¯mpu6500µÄÊı¾İ×¼±¸µÄÍâ²¿ÖĞ¶Ï
+    //åˆå§‹åŒ–mpu6500çš„æ•°æ®å‡†å¤‡çš„å¤–éƒ¨ä¸­æ–­
     MPU6500_DATA_READY_EXIT_INIT();
 #else
 
-    //Èç¹û²»Ê¹ÓÃÍâ²¿ÖĞ¶Ï»½ĞÑÈÎÎñµÄ·½·¨£¬ÔòÊ¹ÓÃ´«Í³µÄÈÎÎñÇĞ»»µÄ·½·¨
+    //å¦‚æœä¸ä½¿ç”¨å¤–éƒ¨ä¸­æ–­å”¤é†’ä»»åŠ¡çš„æ–¹æ³•ï¼Œåˆ™ä½¿ç”¨ä¼ ç»Ÿçš„ä»»åŠ¡åˆ‡æ¢çš„æ–¹æ³•
     TickType_t INS_LastWakeTime;
     INS_LastWakeTime = xTaskGetTickCount();
 
 #endif
 
-//³õÊ¼»¯SPIµÄDMA´«ÊäµÄ·½·¨
+//åˆå§‹åŒ–SPIçš„DMAä¼ è¾“çš„æ–¹æ³•
 #if defined(MPU6500_USE_SPI_DMA) && defined(MPU6500_USE_SPI)
     MPU6500_SPI_DMA_Init(mpu6500_spi_DMA_txbuf, mpu6500_spi_rxbuf);
 
@@ -172,14 +178,14 @@ void INSTask(void *pvParameters)
     {
 
 #if defined(MPU6500_USE_DATA_READY_EXIT)
-        //µÈ´ıÍâ²¿ÖĞ¶ÏÖĞ¶Ï»½ĞÑÈÎÎñ
+        //ç­‰å¾…å¤–éƒ¨ä¸­æ–­ä¸­æ–­å”¤é†’ä»»åŠ¡
         while (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) != pdPASS)
         {
         }
 #else
-        //ÈÎÎñÑÓÊ±ÇĞ»»ÈÎÎñ
+        //ä»»åŠ¡å»¶æ—¶åˆ‡æ¢ä»»åŠ¡
         vTaskDelayUntil(&INS_LastWakeTime, INS_DELTA_TICK);
-//ÔÚÑÓÊ±ÈÎÎñÇĞ»»µÄÇé¿ö£¬¿ªÆôDMA´«Êä
+//åœ¨å»¶æ—¶ä»»åŠ¡åˆ‡æ¢çš„æƒ…å†µï¼Œå¼€å¯DMAä¼ è¾“
 #ifdef MPU6500_USE_SPI_DMA
 
         MPU6500_SPI_NS_L();
@@ -191,53 +197,53 @@ void INSTask(void *pvParameters)
 
 #endif
 
-//Èç¹û²»Ê¹ÓÃSPIµÄ·½·¨£¬ÔòÊ¹ÓÃÆÕÍ¨SPIÍ¨ĞÅµÄ·½·¨
+//å¦‚æœä¸ä½¿ç”¨SPIçš„æ–¹æ³•ï¼Œåˆ™ä½¿ç”¨æ™®é€šSPIé€šä¿¡çš„æ–¹æ³•
 #ifndef MPU6500_USE_SPI_DMA
         mpu6500_read_muli_reg(MPU_INT_STATUS, mpu6500_spi_rxbuf, DMA_RX_NUM);
 #endif
 
-        //½«¶ÁÈ¡µ½µÄmpu6500Ô­Ê¼Êı¾İ´¦Àí³É¹ú¼Êµ¥Î»µÄÊı¾İ
+        //å°†è¯»å–åˆ°çš„mpu6500åŸå§‹æ•°æ®å¤„ç†æˆå›½é™…å•ä½çš„æ•°æ®
         mpu6500_read_over((mpu6500_spi_rxbuf + MPU6500_RX_BUF_DATA_OFFSET), &mpu6500_real_data);
 
-//½«¶ÁÈ¡µ½µÄist8310Ô­Ê¼Êı¾İ´¦Àí³É¹ú¼Êµ¥Î»µÄÊı¾İ
+//å°†è¯»å–åˆ°çš„ist8310åŸå§‹æ•°æ®å¤„ç†æˆå›½é™…å•ä½çš„æ•°æ®
 #if defined(USE_IST8310)
         ist8310_read_over((mpu6500_spi_rxbuf + IST8310_RX_BUF_DATA_OFFSET), &ist8310_real_data);
 #endif
-        //¼õÈ¥ÁãÆ¯ÒÔ¼°Ğı×ª×ø±êÏµ
-        IMU_Cali_Slove(INS_gyro, INS_accel, INS_mag, &mpu6500_real_data, &ist8310_real_data);
+        //å‡å»é›¶æ¼‚ä»¥åŠæ—‹è½¬åæ ‡ç³»
+        IMU_Cali_Slove(INS_gyro, INS_accel, INS_mag, &mpu6500_real_data, &ist8310_real_data); // Feed gyro, magnetometer, acceleration to IMU_Cali_Slove
 
 
-        //¼ÓËÙ¶È¼ÆµÍÍ¨ÂË²¨
+        //åŠ é€Ÿåº¦è®¡ä½é€šæ»¤æ³¢ Decalrs arrays for acceleromter filtering (low pass filter)
         static fp32 accel_fliter_1[3] = {0.0f, 0.0f, 0.0f};
         static fp32 accel_fliter_2[3] = {0.0f, 0.0f, 0.0f};
         static fp32 accel_fliter_3[3] = {0.0f, 0.0f, 0.0f};
         static const fp32 fliter_num[3] = {1.929454039488895f, -0.93178349823448126f, 0.002329458745586203f};
 
 
-        //ÅĞ¶ÏÊÇ·ñµÚÒ»´Î½øÈë£¬Èç¹ûµÚÒ»´ÎÔò³õÊ¼»¯ËÄÔªÊı£¬Ö®ºó¸üĞÂËÄÔªÊı¼ÆËã½Ç¶Èµ¥Î»rad
+        //åˆ¤æ–­æ˜¯å¦ç¬¬ä¸€æ¬¡è¿›å…¥ï¼Œå¦‚æœç¬¬ä¸€æ¬¡åˆ™åˆå§‹åŒ–å››å…ƒæ•°ï¼Œä¹‹åæ›´æ–°å››å…ƒæ•°è®¡ç®—è§’åº¦å•ä½rad
         static uint8_t updata_count = 0;
 
-        if( mpu6500_real_data.status & 1 << MPU_DATA_READY_BIT)
+        if( mpu6500_real_data.status & 1 << MPU_DATA_READY_BIT) // if data is ready:
         {
 
-            if (updata_count == 0)
+            if (updata_count == 0) // if this is the first loop:
             {
-                MPU6500_TEMPERATURE_PWM_INIT();
-                PID_Init(&imuTempPid, PID_DELTA, imuTempPID, MPU6500_TEMPERATURE_PID_MAX_OUT, MPU6500_TEMPERATURE_PID_MAX_IOUT);
+                MPU6500_TEMPERATURE_PWM_INIT(); // initialize gyro PWM temp control
+                PID_Init(&imuTempPid, PID_DELTA, imuTempPID, MPU6500_TEMPERATURE_PID_MAX_OUT, MPU6500_TEMPERATURE_PID_MAX_IOUT); // initialize temp PID controller
 
-                //³õÊ¼»¯ËÄÔªÊı
-                AHRS_init(INS_quat, INS_accel, INS_mag);
-                get_angle(INS_quat, INS_Angle, INS_Angle + 1, INS_Angle + 2);
+                //åˆå§‹åŒ–å››å…ƒæ•°
+                AHRS_init(INS_quat, INS_accel, INS_mag); // update AHRS with quaternion to store accel and magnetometer values
+                get_angle(INS_quat, INS_Angle, INS_Angle + 1, INS_Angle + 2); // update quateronion with angle from get_angle()
 
-                accel_fliter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0];
+                accel_fli ter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0]; // initialize filer values with accelerometer values
                 accel_fliter_1[1] = accel_fliter_2[1] = accel_fliter_3[1] = INS_accel[1];
                 accel_fliter_1[2] = accel_fliter_2[2] = accel_fliter_3[2] = INS_accel[2];
                 updata_count++;
             }
-            else
+            else // if this not first loop
             {
-                //¼ÓËÙ¶È¼ÆµÍÍ¨ÂË²¨
-                accel_fliter_1[0] = accel_fliter_2[0];
+                //åŠ é€Ÿåº¦è®¡ä½é€šæ»¤æ³¢
+                accel_fliter_1[0] = accel_fliter_2[0]; // filter accelerometer values
                 accel_fliter_2[0] = accel_fliter_3[0];
 
                 accel_fliter_3[0] = accel_fliter_2[0] * fliter_num[0] + accel_fliter_1[0] * fliter_num[1] + INS_accel[0] * fliter_num[2];
@@ -252,13 +258,13 @@ void INSTask(void *pvParameters)
 
                 accel_fliter_3[2] = accel_fliter_2[2] * fliter_num[0] + accel_fliter_1[2] * fliter_num[1] + INS_accel[2] * fliter_num[2];
 
-                //¸üĞÂËÄÔªÊı
-                AHRS_update(INS_quat, TimingTime, INS_gyro, accel_fliter_3, INS_mag);
-                get_angle(INS_quat, INS_Angle, INS_Angle + 1, INS_Angle + 2);
+                //æ›´æ–°å››å…ƒæ•°
+                AHRS_update(INS_quat, TimingTime, INS_gyro, accel_fliter_3, INS_mag); // update AHRS
+                get_angle(INS_quat, INS_Angle, INS_Angle + 1, INS_Angle + 2); // update quaternion
 
-                //ÍÓÂİÒÇ¿ª»úĞ£×¼
+                //é™€èºä»ªå¼€æœºæ ¡å‡† // if gyro not done calibrating: (gyroscope boot calibration)
                 {
-                    static uint16_t start_gyro_cali_time = 0;
+                    static uint16_t start_gyro_cali_time = 0; // calibrate it? idk
                     if(start_gyro_cali_time == 0)
                     {
                         Gyro_Offset[0] = gyro_cali_offset[0];
@@ -271,7 +277,7 @@ void INSTask(void *pvParameters)
                         IMUWarnBuzzerOn();
                         if( first_temperate)
                         {
-                            //µ±½øÈëgyro_offsetº¯Êı£¬Èç¹ûÎŞÔË¶¯start_gyro_cali_time++£¬Èç¹ûÓĞÔË¶¯ start_gyro_cali_time = 0
+                            //å½“è¿›å…¥gyro_offsetå‡½æ•°ï¼Œå¦‚æœæ— è¿åŠ¨start_gyro_cali_time++ï¼Œå¦‚æœæœ‰è¿åŠ¨ start_gyro_cali_time = 0
                             gyro_offset(Gyro_Offset, INS_gyro, mpu6500_real_data.status, &start_gyro_cali_time);
                         }
                     }
@@ -281,13 +287,15 @@ void INSTask(void *pvParameters)
                         IMUWarnBuzzerOFF();
                         start_gyro_cali_time++;
                     }
-                }       //ÍÓÂİÒÇ¿ª»úĞ£×¼   code end
+                }       //é™€èºä»ªå¼€æœºæ ¡å‡†   code end
 
             }           //update count if   code end
         }               //mpu6500 status  if end
-        //ÇëÔÚÕâÀïÌí¼ÓÀıÈçÎÂ¶È¿ØÖÆ´úÂë
+        //è¯·åœ¨è¿™é‡Œæ·»åŠ ä¾‹å¦‚æ¸©åº¦æ§åˆ¶ä»£ç 
 
-        IMU_temp_Control(mpu6500_real_data.temp);
+        IMU_temp_Control(mpu6500_real_data.temp); // Run some sort of PID temp control (why tho?)
+
+// Rest is fairly self explanatory
 
 #if INCLUDE_uxTaskGetStackHighWaterMark
         INSTaskStack = uxTaskGetStackHighWaterMark(NULL);
@@ -299,12 +307,12 @@ void INSTask(void *pvParameters)
 }
 
 /**
-  * @brief          Ğ£×¼ÍÓÂİÒÇ
+  * @brief          æ ¡å‡†é™€èºä»ª
   * @author         RM
-  * @param[in]      ÍÓÂİÒÇµÄ±ÈÀıÒò×Ó£¬1.0fÎªÄ¬ÈÏÖµ£¬²»ĞŞ¸Ä
-  * @param[in]      ÍÓÂİÒÇµÄÁãÆ¯£¬²É¼¯ÍÓÂİÒÇµÄ¾²Ö¹µÄÊä³ö×÷Îªoffset
-  * @param[in]      ÍÓÂİÒÇµÄÊ±¿Ì£¬Ã¿´ÎÔÚgyro_offsetµ÷ÓÃ»á¼Ó1,
-  * @retval         ·µ»Ø¿Õ
+  * @param[in]      é™€èºä»ªçš„æ¯”ä¾‹å› å­ï¼Œ1.0fä¸ºé»˜è®¤å€¼ï¼Œä¸ä¿®æ”¹
+  * @param[in]      é™€èºä»ªçš„é›¶æ¼‚ï¼Œé‡‡é›†é™€èºä»ªçš„é™æ­¢çš„è¾“å‡ºä½œä¸ºoffset
+  * @param[in]      é™€èºä»ªçš„æ—¶åˆ»ï¼Œæ¯æ¬¡åœ¨gyro_offsetè°ƒç”¨ä¼šåŠ 1,
+  * @retval         è¿”å›ç©º
   */
 void INS_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3], uint16_t *time_count)
 {
@@ -325,11 +333,11 @@ void INS_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3], uint16_t *time_count
 }
 
 /**
-  * @brief          Ğ£×¼ÍÓÂİÒÇÉèÖÃ£¬½«´Óflash»òÕßÆäËûµØ·½´«ÈëĞ£×¼Öµ
+  * @brief          æ ¡å‡†é™€èºä»ªè®¾ç½®ï¼Œå°†ä»flashæˆ–è€…å…¶ä»–åœ°æ–¹ä¼ å…¥æ ¡å‡†å€¼
   * @author         RM
-  * @param[in]      ÍÓÂİÒÇµÄ±ÈÀıÒò×Ó£¬1.0fÎªÄ¬ÈÏÖµ£¬²»ĞŞ¸Ä
-  * @param[in]      ÍÓÂİÒÇµÄÁãÆ¯
-  * @retval         ·µ»Ø¿Õ
+  * @param[in]      é™€èºä»ªçš„æ¯”ä¾‹å› å­ï¼Œ1.0fä¸ºé»˜è®¤å€¼ï¼Œä¸ä¿®æ”¹
+  * @param[in]      é™€èºä»ªçš„é›¶æ¼‚
+  * @retval         è¿”å›ç©º
   */
 void INS_set_cali_gyro(fp32 cali_scale[3], fp32 cali_offset[3])
 {
@@ -377,13 +385,13 @@ static void IMU_temp_Control(fp32 temp)
     }
     else
     {
-        //ÔÚÃ»ÓĞ´ïµ½ÉèÖÃµÄÎÂ¶È£¬Ò»Ö±×î´ó¹¦ÂÊ¼ÓÈÈ
+        //åœ¨æ²¡æœ‰è¾¾åˆ°è®¾ç½®çš„æ¸©åº¦ï¼Œä¸€ç›´æœ€å¤§åŠŸç‡åŠ çƒ­
         if (temp > INS_GET_CONTROL_TEMPERATURE())
         {
             temp_constant_time ++;
             if(temp_constant_time > 200)
             {
-                //´ïµ½ÉèÖÃÎÂ¶È£¬½«»ı·ÖÏîÉèÖÃÎªÒ»°ë×î´ó¹¦ÂÊ£¬¼ÓËÙÊÕÁ²
+                //è¾¾åˆ°è®¾ç½®æ¸©åº¦ï¼Œå°†ç§¯åˆ†é¡¹è®¾ç½®ä¸ºä¸€åŠæœ€å¤§åŠŸç‡ï¼ŒåŠ é€Ÿæ”¶æ•›
                 first_temperate = 1;
                 imuTempPid.Iout = MPU6500_TEMP_PWM_MAX / 2.0f;
 
@@ -403,13 +411,13 @@ void MPU6500_DATA_READY_EXIT_IRQHandler(void)
 
         EXTI_ClearITPendingBit(MPU6500_DATA_READY_EXIT_Line);
 
-//Èç¹û¿ªÆôDMA´«Êä »½ĞÑÈÎÎñÓÉDMAÖĞ¶ÏÍê³É
+//å¦‚æœå¼€å¯DMAä¼ è¾“ å”¤é†’ä»»åŠ¡ç”±DMAä¸­æ–­å®Œæˆ
 #if defined(MPU6500_USE_SPI_DMA)
         mpu6500_SPI_NS_L();
         MPU6500_SPI_DMA_Enable();
 #else
 
-        //»½ĞÑÈÎÎñ
+        //å”¤é†’ä»»åŠ¡
         if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
         {
             static BaseType_t xHigherPriorityTaskWoken;
@@ -432,7 +440,7 @@ void MPU6500_DMA_IRQHandler(void)
         DMA_ClearFlag(MPU6500_DMA_Stream, MPU6500_DMA_FLAG);
         mpu6500_SPI_NS_H();
 
-        //»½ĞÑÈÎÎñ
+        //å”¤é†’ä»»åŠ¡
         if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
         {
             static BaseType_t xHigherPriorityTaskWoken;
