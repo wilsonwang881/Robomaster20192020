@@ -1,10 +1,10 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       remote_control.c/h
-  * @brief      遥控器处理，遥控器是通过类似SBUS的协议传输，利用DMA传输方式节约CPU
-  *             资源，利用串口空闲中断来拉起处理函数，同时提供一些掉线重启DMA，串口
-  *             的方式保证热插拔的稳定性。
-  * @note       该任务是通过串口中断启动，不是freeRTOS任务
+  * @brief      The remote control transmits the data with a protocol similar with SBUS, 
+  *             using the DMA to save CPU spaces, using serial break to process functions.
+  *             Serial communication could assure the stability of hot-swap.
+  * @note       The program starts with serial break, but not with freeRTOS
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Dec-26-2018     RM              1. 完成
@@ -24,34 +24,34 @@
 #include "rc.h"
 
 #include "Detect_Task.h"
-//遥控器出错数据上限
+//Maximum of remote control errors
 #define RC_CHANNAL_ERROR_VALUE 700
 
-//取正函数
+//function to get the absoute value
 static int16_t RC_abs(int16_t value);
-//遥控器处理函数
+//remote control porcessing function
 static void SBUS_TO_RC(volatile const uint8_t *sbus_buf, RC_ctrl_t *rc_ctrl);
 
-//遥控器控制变量
+//the variable of remote control
 static RC_ctrl_t rc_ctrl;
-//接收原始数据，为18个字节，给了36个字节长度，防止DMA传输越界
+//To recieve the original data. The length is 18 byte, but it gives 36 bytes to prevent DMA from getting out of bounds
 static uint8_t SBUS_rx_buf[2][SBUS_RX_BUF_NUM];
 
-//初始化DMA，串口1
+//initiate the DMA and Serial 1
 void remote_control_init(void)
 {
     RC_Init(SBUS_rx_buf[0], SBUS_rx_buf[1], SBUS_RX_BUF_NUM);
 }
-//返回遥控器控制变量，通过指针传递方式传递信息
+//return remote control variable, transmit data by pointer
 const RC_ctrl_t *get_remote_control_point(void)
 {
     return &rc_ctrl;
 }
 
-//判断遥控器数据是否出错，
+//testify if data from remote control have errors
 uint8_t RC_data_is_error(void)
 {
-    //使用了go to语句 方便出错统一处理遥控器变量数据归零
+    //using "go to" to make it easier for the error processer variable to become 0
     if (RC_abs(rc_ctrl.rc.ch[0]) > RC_CHANNAL_ERROR_VALUE)
     {
         goto error;
@@ -104,7 +104,7 @@ void slove_data_error(void)
     RC_restart(SBUS_RX_BUF_NUM);
 }
 
-//串口中断
+//Serial break
 void USART1_IRQHandler(void)
 {
     if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
@@ -118,37 +118,37 @@ void USART1_IRQHandler(void)
 
         if(DMA_GetCurrentMemoryTarget(DMA2_Stream2) == 0)
         {
-            //重新设置DMA
+            //Reset DMA
             DMA_Cmd(DMA2_Stream2, DISABLE);
             this_time_rx_len = SBUS_RX_BUF_NUM - DMA_GetCurrDataCounter(DMA2_Stream2);
             DMA_SetCurrDataCounter(DMA2_Stream2, SBUS_RX_BUF_NUM);
             DMA2_Stream2->CR |= DMA_SxCR_CT;
-            //清DMA中断标志
+            //clear the break sign of DMA
             DMA_ClearFlag(DMA2_Stream2, DMA_FLAG_TCIF2 | DMA_FLAG_HTIF2);
             DMA_Cmd(DMA2_Stream2, ENABLE);
             if(this_time_rx_len == RC_FRAME_LENGTH)
             {
-                //处理遥控器数据
+                //processing data frim remote control
                 SBUS_TO_RC(SBUS_rx_buf[0], &rc_ctrl);
-                //记录数据接收时间
+                //record recieving time
                 DetectHook(DBUSTOE);
             }
         }
         else
         {
-            //重新设置DMA
+            //Reset DMA
             DMA_Cmd(DMA2_Stream2, DISABLE);
             this_time_rx_len = SBUS_RX_BUF_NUM - DMA_GetCurrDataCounter(DMA2_Stream2);
             DMA_SetCurrDataCounter(DMA2_Stream2, SBUS_RX_BUF_NUM);
             DMA2_Stream2->CR &= ~(DMA_SxCR_CT);
-            //清DMA中断标志
+            //clear the break sign of DMA
             DMA_ClearFlag(DMA2_Stream2, DMA_FLAG_TCIF2 | DMA_FLAG_HTIF2);
             DMA_Cmd(DMA2_Stream2, ENABLE);
             if(this_time_rx_len == RC_FRAME_LENGTH)
             {
-                //处理遥控器数据
+                //processing data frim remote control
                 SBUS_TO_RC(SBUS_rx_buf[1], &rc_ctrl);
-                //记录数据接收时间
+                //record recieving time
                 DetectHook(DBUSTOE);
             }
 
@@ -156,7 +156,7 @@ void USART1_IRQHandler(void)
     }
 }
 
-//取正函数
+//the function to get absolute values
 static int16_t RC_abs(int16_t value)
 {
     if (value > 0)
