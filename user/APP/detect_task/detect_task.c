@@ -1,23 +1,31 @@
-/**
-  ****************************(C) COPYRIGHT 2016 DJI****************************
+/******************************(C) COPYRIGHT 2016 DJI****************************
   * @file       detect_task.c/h
-  * @brief      Éè±¸ÀëÏßÅĞ¶ÏÈÎÎñ£¬Í¨¹ıfreeRTOSµÎ´ğÊ±¼ä×÷ÎªÏµÍ³Ê±¼ä£¬Éè±¸»ñÈ¡Êı¾İºó
-  *             µ÷ÓÃDetectHook¼ÇÂ¼¶ÔÓ¦Éè±¸µÄÊ±¼ä£¬ÔÚ¸ÃÈÎÎñ»áÍ¨¹ıÅĞ¶Ï¼ÇÂ¼Ê±¼äÓëÏµÍ³
-  *             Ê±¼äÖ®²îÀ´ÅĞ¶ÏµôÏß£¬Í¬Ê±½«×î¸ßµÄÓÅÏÈ¼¶µÄÈÎÎñÍ¨¹ıLEDµÄ·½Ê½¸Ä±ä£¬°üÀ¨
-  *             °Ë¸öÁ÷Ë®µÆÏÔÊ¾SBUBÒ£¿ØÆ÷£¬Èı¸öÔÆÌ¨ÉÏµÄµç»ú£¬4¸öµ×ÅÌµç»ú£¬ÁíÍâÒ²Í¨¹ı
-  *             ºìµÆÉÁË¸´ÎÊıÀ´ÏÔÊ¾´íÎóÂë¡£
+  * @brief      è®¾å¤‡ç¦»çº¿åˆ¤æ–­ä»»åŠ¡ï¼Œé€šè¿‡freeRTOSæ»´ç­”æ—¶é—´ä½œä¸ºç³»ç»Ÿæ—¶é—´ï¼Œè®¾å¤‡è·å–æ•°æ®å
+  *             è°ƒç”¨DetectHookè®°å½•å¯¹åº”è®¾å¤‡çš„æ—¶é—´ï¼Œåœ¨è¯¥ä»»åŠ¡ä¼šé€šè¿‡åˆ¤æ–­è®°å½•æ—¶é—´ä¸ç³»ç»Ÿ
+  *             æ—¶é—´ä¹‹å·®æ¥åˆ¤æ–­æ‰çº¿ï¼ŒåŒæ—¶å°†æœ€é«˜çš„ä¼˜å…ˆçº§çš„ä»»åŠ¡é€šè¿‡LEDçš„æ–¹å¼æ”¹å˜ï¼ŒåŒ…æ‹¬
+  *             å…«ä¸ªæµæ°´ç¯æ˜¾ç¤ºSBUBé¥æ§å™¨ï¼Œä¸‰ä¸ªäº‘å°ä¸Šçš„ç”µæœºï¼Œ4ä¸ªåº•ç›˜ç”µæœºï¼Œå¦å¤–ä¹Ÿé€šè¿‡
+  *             çº¢ç¯é—ªçƒæ¬¡æ•°æ¥æ˜¾ç¤ºé”™è¯¯ç ã€‚
+  *
+  *
+  * 		     		Set to off-line mode, using the freeRTOS tick time as the 
+	*							internal clock of the system timing, after getting the data, using 
+	*							DetectHook to record the corresponding time, this task will detect 
+	*							and compare recorded time with the system time to determine if it is off-line. 
+	*							At the same time, change the most prioritized task by changing the LEDs, 
+	*							including 8 Flow LEDS to display the SBUB controller, 3 motors on the gimbal, 
+	*							4 motors on the chassis. In addition, showing the error by flashing the Red LEDs.  
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ
   *
   @verbatim
   ==============================================================================
 
   ==============================================================================
   @endverbatim
-  ****************************(C) COPYRIGHT 2016 DJI****************************
-  */
-
+  ****************************(C) COPYRIGHT 2016 DJI*****************************/
+	
+	
 #include "Detect_Task.h"
 
 #include "led.h"
@@ -29,19 +37,26 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-//ºìµÆÉÁ£¬Ãğº¯Êı£¬ÇĞ»»ÉÁÃğ
-#define DETECT_LED_R_TOGGLE() led_red_toggle()
-#define DETECT_LED_R_ON() led_red_on()
-#define DETECT_LED_R_OFF() led_red_off()
-//Á÷Ë®µÆÉÁÃğº¯Êı
-#define DETECT_FLOW_LED_ON(i) flow_led_on(i)
-#define DETECT_FLOW_LED_OFF(i) flow_led_off(i)
+//çº¢ç¯é—ªï¼Œç­å‡½æ•°ï¼Œåˆ‡æ¢é—ªç­
+//Switch, On, Off
+#define DETECT_LED_R_TOGGLE() led_red_toggle()// for switching
+#define DETECT_LED_R_ON() led_red_on()// for on
+#define DETECT_LED_R_OFF() led_red_off() // off
+
+//æµæ°´ç¯é—ªç­å‡½æ•°
+//Flow LEDs On/Off
+#define DETECT_FLOW_LED_ON(i) flow_led_on(i) //flow_led on
+#define DETECT_FLOW_LED_OFF(i) flow_led_off(i) //flow_led off 
 
 #define DETECT_TASK_INIT_TIME 57
 #define DETECT_CONTROL_TIME 10
-//³õÊ¼»¯´íÎóÁĞ±í
+
+//åˆå§‹åŒ–é”™è¯¯åˆ—è¡¨
+//Init errorList 
 static void DetectInit(uint32_t time);
-//ÏÔÊ¾ÓÅÏÈ¼¶×î¸ßµÄ´íÎó£¬´«ÈëµÄ²ÎÊıÎª ÏÔÊ¾µÄ´íÎóµÄ´íÎóÂë
+
+//æ˜¾ç¤ºä¼˜å…ˆçº§æœ€é«˜çš„é”™è¯¯ï¼Œä¼ å…¥çš„å‚æ•°ä¸º æ˜¾ç¤ºçš„é”™è¯¯çš„é”™è¯¯ç 
+//Display the prioritized error, the parameter that is being past is number of the error
 static void DetectDisplay(uint8_t num);
 
 static error_t errorList[errorListLength + 1];
@@ -50,20 +65,25 @@ static error_t errorList[errorListLength + 1];
 uint32_t DetectTaskStack;
 #endif
 
-//µôÏßÅĞ¶ÏÈÎÎñ
+//æ‰çº¿åˆ¤æ–­ä»»åŠ¡
+//Detect if online or offline
 void DetectTask(void *pvParameters)
 {
     static uint32_t systemTime;
     systemTime = xTaskGetTickCount();
-    //³õÊ¼»¯
+    
+    //åˆå§‹åŒ– 
+		//Initialization
     DetectInit(systemTime);
-    //¿ÕÏĞÒ»¶ÎÊ±¼ä
+
+    //ç©ºé—²ä¸€æ®µæ—¶é—´ 
+		//Delay
     vTaskDelay(DETECT_TASK_INIT_TIME);
 
     while (1)
     {
         static uint8_t error_num_display = 0;
-        systemTime = xTaskGetTickCount();
+        systemTime = xTaskGetTickCount(); //setting the clock to tick time 
 
         error_num_display = errorListLength;
         errorList[errorListLength].isLost = 0;
@@ -71,31 +91,37 @@ void DetectTask(void *pvParameters)
 
         for (int i = 0; i < errorListLength; i++)
         {
-            //Î´Ê¹ÄÜ£¬Ìø¹ı
+            //æœªä½¿èƒ½ï¼Œè·³è¿‡
+            //If this error isnt happening, continue
             if (errorList[i].enable == 0)
             {
                 continue;
             }
 
-            //ÅĞ¶ÏµôÏß
+            //åˆ¤æ–­æ‰çº¿
+            //Detetmine if offline
             if (systemTime - errorList[i].newTime > errorList[i].setOfflineTime)
             {
                 if (errorList[i].errorExist == 0)
                 {
-                    //¼ÇÂ¼´íÎóÒÔ¼°µôÏßÊ±¼ä
+                    //è®°å½•é”™è¯¯ä»¥åŠæ‰çº¿æ—¶é—´
+                    //Record the error and offline time
                     errorList[i].isLost = 1;
                     errorList[i].errorExist = 1;
                     errorList[i].Losttime = systemTime;
                 }
-                //ÅĞ¶Ï´íÎóÓÅÏÈ¼¶£¬ ±£´æÓÅÏÈ¼¶×î¸ßµÄ´íÎóÂë
+                //åˆ¤æ–­é”™è¯¯ä¼˜å…ˆçº§ï¼Œ ä¿å­˜ä¼˜å…ˆçº§æœ€é«˜çš„é”™è¯¯ç 
+                //Determine the priority level of the error, store the error number of highest priority error
                 if (errorList[i].Priority > errorList[error_num_display].Priority)
                 {
                     error_num_display = i;
                 }
-                //¼ÇÂ¼ÁĞ±íµÄ´æÔÚ´íÎó£¬
+                //è®°å½•åˆ—è¡¨çš„å­˜åœ¨é”™è¯¯ï¼Œ
+                //Record the error in the list
                 errorList[errorListLength].isLost = 1;
                 errorList[errorListLength].errorExist = 1;
-                //Èç¹ûÌá¹©½â¾öº¯Êı£¬ÔËĞĞ½â¾öº¯Êı
+                //å¦‚æœæä¾›è§£å†³å‡½æ•°ï¼Œè¿è¡Œè§£å†³å‡½æ•°
+                // If solvelostFun is provided, run the function
                 if (errorList[i].solveLostFun != NULL)
                 {
                     errorList[i].solveLostFun();
@@ -103,14 +129,16 @@ void DetectTask(void *pvParameters)
             }
             else if (systemTime - errorList[i].worktime < errorList[i].setOnlineTime)
             {
-                //¸Õ¸ÕÉÏÏß£¬¿ÉÄÜ´æÔÚÊı¾İ²»ÎÈ¶¨£¬Ö»¼ÇÂ¼²»¶ªÊ§£¬
+                //åˆšåˆšä¸Šçº¿ï¼Œå¯èƒ½å­˜åœ¨æ•°æ®ä¸ç¨³å®šï¼Œåªè®°å½•ä¸ä¸¢å¤±ï¼Œ
+                //If online data is not stable, only record but don't delete
                 errorList[i].isLost = 0;
                 errorList[i].errorExist = 1;
             }
             else
             {
                 errorList[i].isLost = 0;
-                //ÅĞ¶ÏÊÇ·ñ´æÔÚÊı¾İ´íÎó
+                //åˆ¤æ–­æ˜¯å¦å­˜åœ¨æ•°æ®é”™è¯¯
+                //Determine if error exists in the data
                 if (errorList[i].dataIsError)
                 {
                     errorList[i].errorExist = 1;
@@ -119,7 +147,8 @@ void DetectTask(void *pvParameters)
                 {
                     errorList[i].errorExist = 0;
                 }
-                //¼ÆËãÆµÂÊ
+                //è®¡ç®—é¢‘ç‡
+                //Calculate frequency
                 if (errorList[i].newTime > errorList[i].lastTime)
                 {
                     errorList[i].frequency = configTICK_RATE_HZ / (fp32)(errorList[i].newTime - errorList[i].lastTime);
@@ -135,24 +164,28 @@ void DetectTask(void *pvParameters)
     }
 }
 
-//·µ»Ø¶ÔÓ¦µÄÉè±¸ÊÇ·ñ´æÔÚ´íÎó
+//è¿”å›å¯¹åº”çš„è®¾å¤‡æ˜¯å¦å­˜åœ¨é”™è¯¯
+//Return the corresponding error of the part
 bool_t toe_is_error(uint8_t err)
 {
     return (errorList[err].errorExist == 1);
 }
 
-//Éè±¸½ÓÊÕÊı¾İ¹³×Óº¯Êı
+//è®¾å¤‡æ¥æ”¶æ•°æ®é’©å­å‡½æ•°
+//The parts recieve the data from the hook 
 void DetectHook(uint8_t toe)
 {
     errorList[toe].lastTime = errorList[toe].newTime;
     errorList[toe].newTime = xTaskGetTickCount();
-    //¸üĞÂ¶ªÊ§Çé¿ö
+    //æ›´æ–°ä¸¢å¤±æƒ…å†µ
+    //Update what isLost
     if (errorList[toe].isLost)
     {
         errorList[toe].isLost = 0;
         errorList[toe].worktime = errorList[toe].newTime;
     }
-    //ÅĞ¶ÏÊı¾İÊÇ·ñ´íÎó
+    //åˆ¤æ–­æ•°æ®æ˜¯å¦é”™è¯¯
+    //Determine if the data is wrong
     if (errorList[toe].dataIsErrorFun != NULL)
     {
         if (errorList[toe].dataIsErrorFun())
@@ -184,7 +217,8 @@ static void DetectDisplay(uint8_t num)
     static uint8_t last_num = errorListLength + 1;
     uint8_t i = 0;
 
-    //8¸öÁ÷Ë®ÏÔÊ¾Ç°°ËµÄ´íÎóÂëµÄÇé¿ö£¬°üÀ¨SBUSÒ£¿ØÆ÷£¬yaw.pitch,trigerÔÆÌ¨£¬4¸öµ×ÅÌµç»ú
+    //8ä¸ªæµæ°´æ˜¾ç¤ºå‰å…«çš„é”™è¯¯ç çš„æƒ…å†µï¼ŒåŒ…æ‹¬SBUSé¥æ§å™¨ï¼Œyaw.pitch,trigeräº‘å°ï¼Œ4ä¸ªåº•ç›˜ç”µæœº
+	//The 8 Flow LEDs show the first 8 errors- serial bus controller, gimbal:( the yaw, pitch, trigger),chassis:( and 4 chassis motors)
     for (i = 0; i <= ChassisMotor4TOE; i++)
     {
         if (errorList[i].errorExist)
@@ -197,7 +231,8 @@ static void DetectDisplay(uint8_t num)
         }
     }
 
-    //´íÎóÂë Í¨¹ıºìµÆÉÁË¸´ÎÊıÀ´ÅĞ¶Ï
+    //é”™è¯¯ç  é€šè¿‡çº¢ç¯é—ªçƒæ¬¡æ•°æ¥åˆ¤æ–­
+    //Show the error code by flashing Red LED
     if (num == errorListLength + 1)
     {
         DETECT_LED_R_OFF();
@@ -206,7 +241,8 @@ static void DetectDisplay(uint8_t num)
     else
     {
         static uint8_t i = 0, led_flag = 0, cnt_num = 0, time = 0;
-        //¼ÇÂ¼×îĞÂµÄ×î¸ßÓÅÏÈ¼¶µÄ´íÎóÂë£¬µÈÏÂÒ»ÂÖÉÁË¸
+        //è®°å½•æœ€æ–°çš„æœ€é«˜ä¼˜å…ˆçº§çš„é”™è¯¯ç ï¼Œç­‰ä¸‹ä¸€è½®é—ªçƒ
+        //Record the newest, highest priority error code, wait for next round of LEDs
         if (last_num != num)
         {
             last_num = num;
@@ -214,7 +250,8 @@ static void DetectDisplay(uint8_t num)
 
         if (cnt_num == 0)
         {
-            //cnt_num ¼ÇÂ¼»¹ÓĞ¼¸´ÎÉÁË¸£¬µ½0ºó£¬ÃğÒ»¶ÎÊ±¼ä²Å¿ªÊ¼ÏÂÒ»ÂÖ
+            //cnt_num è®°å½•è¿˜æœ‰å‡ æ¬¡é—ªçƒï¼Œåˆ°0åï¼Œç­ä¸€æ®µæ—¶é—´æ‰å¼€å§‹ä¸‹ä¸€è½®
+            //Record the remaining flashes, when it hits 0, delay some time, then do again
             time++;
             if (time > 50)
             {
@@ -230,17 +267,19 @@ static void DetectDisplay(uint8_t num)
             DETECT_LED_R_TOGGLE();
             if (led_flag)
             {
-                //ºìµÆÉÁÃğ¸÷Ò»´Î£¬½«ÒªÊ£Óà´ÎÊı¼õÒ»
+                //çº¢ç¯é—ªç­å„ä¸€æ¬¡ï¼Œå°†è¦å‰©ä½™æ¬¡æ•°å‡ä¸€
+                //When red toggles once, remove one from reamining flahses
                 led_flag = 0;
                 cnt_num--;
-            }
+            } 
             else
             {
                 led_flag = 1;
             }
         }
 
-        //iÎª¼ÆÊ±´ÎÊı£¬20Îª°ë¸öÖÜÆÚ£¬ÇĞ»»Ò»´ÎºìµÆÉÁÃğ
+        //iä¸ºè®¡æ—¶æ¬¡æ•°ï¼Œ20ä¸ºåŠä¸ªå‘¨æœŸï¼Œåˆ‡æ¢ä¸€æ¬¡çº¢ç¯é—ªç­
+        //i is how many times it flahses, i = 20 is half of the period, toggle red light from on to off 
         i++;
 
         if (i > 20)
@@ -252,17 +291,19 @@ static void DetectDisplay(uint8_t num)
 
 static void DetectInit(uint32_t time)
 {
-    //ÉèÖÃÀëÏßÊ±¼ä£¬ÉÏÏßÎÈ¶¨¹¤×÷Ê±¼ä£¬ÓÅÏÈ¼¶ offlineTime onlinetime priority
+    //è®¾ç½®ç¦»çº¿æ—¶é—´ï¼Œä¸Šçº¿ç¨³å®šå·¥ä½œæ—¶é—´ï¼Œä¼˜å…ˆçº§ offlineTime onlinetime priority
+    //Init offline time, stabilize onlinetime, Priority
     uint16_t setItem[errorListLength][3] =
         {
-            {30, 40, 15}, //SBUS
+						//offlinetime, onlinetime, priority
+            {30, 40, 15}, //SBUS Highest Priority!
             {2, 3, 14},   //yaw
             {2, 3, 13},   //pitch
             {10, 10, 12}, //trigger
             {10, 10, 11}, //motor1
             {10, 10, 10}, //motor2
             {10, 10, 9},  //motor3
-            {10, 10, 8},  //motor4
+            {10, 10, 8},  //motor4 Lowest Priority
 
         };
 
@@ -295,3 +336,9 @@ static void DetectInit(uint32_t time)
     errorList[PitchGimbalMotorTOE].solveLostFun = GIMBAL_lose_slove;
 #endif
 }
+
+
+
+
+
+
