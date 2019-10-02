@@ -1,11 +1,11 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       main.c/h
-  * @brief      stm32初始化以及开始任务freeRTOS。
-  * @note       
+  * @brief      stm32初始化以及开始任务freeRTOS。 stm32 initialization and start tasks in freeRTOS
+  * @note
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成 complete
   *
   @verbatim
   ==============================================================================
@@ -32,6 +32,7 @@ typedef float fp32;
 typedef double fp64;
 
 //云台电机可能can发送失败的情况，尝试使用 随机延迟发送控制指令的方式解决
+//the tripod head may experience failure when using can. Try to use random delay to send commands to solve the problem
 #define GIMBAL_MOTOR_6020_CAN_LOSE_SLOVE 0
 
 #define SysCoreClock 180
