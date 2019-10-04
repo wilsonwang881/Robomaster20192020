@@ -5,7 +5,14 @@
   *             云台校准主要是中值，最大最小相对角度，陀螺仪主要校准零漂
   *             加速度计和磁力计只是写好接口函数，加速度计目前没有必要校准，
   *             磁力计尚未使用在解算算法中。
-  * @note       
+  *             Finish calibration-related devices' data, including the tripod,
+  *             gyroscope, accelerometer, magnetometer
+  *             Tripod calibration: middle value, min and max relative angle
+  *             Gyroscope caliberation: zero shift
+  *             Accelerometer and magnetometer: have the interface function ready
+  *             Accelerometer: not necessary for calibration for now
+  *             Magnetometer: not currently used in the decoding algorithm
+  * @note
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Dec-26-2018     RM              1. 完成
@@ -19,6 +26,9 @@
   */
 
 //包含校准设备的名字，校准标识符，校准数据flash大小，校准命令，对应的校准数据地址
+//contains the names, standard identification, calibration flash size,
+//calibration commands and the corresponding data addresses
+//for the calibration devices
 #include "calibrate_Task.h"
 
 #include "adc.h"
@@ -38,23 +48,46 @@ uint32_t calibrate_task_stack;
 #endif
 
 static void cali_data_read(void);                           //读取所有校准数据
+//read all calibration data
+
 static void cali_data_write(void);                          //写入当前校准变量的数据
+//write the data of the current calibration parameters
+
 static bool_t cali_head_hook(uint32_t *cali, bool_t cmd);   //表头校准数据函数
+//header calibration data function
+
 static bool_t cali_gyro_hook(uint32_t *cali, bool_t cmd);   //陀螺仪校准数据函数
+//gyroscope calibration data function
+
 static bool_t cali_gimbal_hook(uint32_t *cali, bool_t cmd); //云台校准数据函数
+//tripod calibration data function
 
 static const RC_ctrl_t *calibrate_RC; //遥控器结构体指针
+//struct pointer for the remote control
+
 static head_cali_t head_cali;         //表头校准数据
+//header calibration data
+
 static gimbal_cali_t gimbal_cali;     //云台校准数据
+//tripod calibration data
+
 static imu_cali_t gyro_cali;          //陀螺仪校准数据
+//gyroscope calibration data
+
 static imu_cali_t accel_cali;         //加速度校准数据
+//accelerometer calibration data
+
 static imu_cali_t mag_cali;           //磁力计校准数据
+//magnetometer calibration data
 
 static cali_sensor_t cali_sensor[CALI_LIST_LENGHT]; //校准设备数组，
+//calibration device number array
 
 static const uint8_t cali_name[CALI_LIST_LENGHT][3] = {"HD", "GM", "GYR", "ACC", "MAG"}; //校准设备的名字
+//names of the calibration devices
 
 //校准设备对应放入结构体变量地址
+//
 static uint32_t *cali_sensor_buf[CALI_LIST_LENGHT] =
     {
         (uint32_t *)&head_cali, (uint32_t *)&gimbal_cali,
