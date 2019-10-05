@@ -92,13 +92,20 @@
 
 
 #define configOVERRIDE_DEFAULT_TICK_CONFIGURATION 1 //使用非systick中断作为调度时钟
+// use non-systick interrupt as the scheduling clock
 
 #define configUSE_PREEMPTION            1   //1使用抢占式内核，0使用协程
+// 1: use preemptive kernel, 0: use coroutine
+
 #define configUSE_TIME_SLICING          1   //1使能时间片调度(默认式使能的)
-  
+// 1: enable time-slicing schedule (default is 1)
+
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION	1    //1启用特殊方法来选择下一个要运行的任务
                                                      //一般是硬件计算前导零指令，如果所使用的
                                                      //MCU没有这些硬件指令的话此宏应该设置为0！
+																										 //1: enable special method to choose the next task to run
+																										 //usually																				
+
 #define configUSE_TICKLESS_IDLE	        0    //1启用低功耗tickless模式
 #define configUSE_QUEUE_SETS	        1    //为1时启用队列
 #define configUSE_IDLE_HOOK				0    //1，使用空闲钩子；0，不使用
@@ -180,11 +187,11 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 /* !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!
 See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY 	( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
-	
+
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
-#define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }	
-	
+#define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
+
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
 standard names. */
 #define vPortSVCHandler SVC_Handler
@@ -192,4 +199,3 @@ standard names. */
 //#define xPortSysTickHandler SysTick_Handler
 
 #endif /* FREERTOS_CONFIG_H */
-
