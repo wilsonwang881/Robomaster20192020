@@ -1,15 +1,14 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       chassis_behaviour.c/h
-  * @brief      мЙЁи╣велппн╙хннЯ║ё
-  * @note       
+  * @brief      Е╝▄Ф┬░Е╨∙Г⌡≤Х║▄Д╦╨Д╩╩Е┼║Ц─┌
+  * @note
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. мЙЁи
+  *  V1.0.0     Dec-26-2018     RM              1. Е╝▄Ф┬░
   *
   @verbatim
   ==============================================================================
-
   ==============================================================================
   @endverbatim
   ****************************(C) COPYRIGHT 2016 DJI****************************
@@ -21,15 +20,19 @@
 
 typedef enum
 {
-  CHASSIS_ZERO_FORCE,                  //╣велнча╕
-  CHASSIS_NO_MOVE,                     //╣вел╠ёЁж╡╩╤╞
-  CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,  //уЩЁё╡╫╠Ь╣вел╦ЗкФтфл╗
-  CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, //╧╓Ёл╣вел╫г╤х©ьжф╣велё╛сисз╣велн╢спмсбщргё╛╧й╤Ь╫г╤хйг╪Ух╔тфл╗╫г╤х╤Ь╣ц╣╫ё╛хГ╧Шсп╣велмсбщрггК╦Эпб╣вел╣дyawё╛pitchё╛roll╫г╤х
-  CHASSIS_NO_FOLLOW_YAW,               //╣вел╡╩╦ЗкФ╫г╤хё╛╫г╤хйг©╙╩╥╣дё╛╣╚г╟╨СвСсрйгспкы╤х╩╥
-  CHASSIS_OPEN                         //рё©ьфВ╣дж╣Ёкрт╠хюЩж╠╫с╥╒км╣╫canвэоъио
+    CHASSIS_ZERO_FORCE,                  //Е╨∙Г⌡≤Ф≈═Е┼⌡ no force
+    CHASSIS_NO_MOVE,                     //Е╨∙Г⌡≤Д©²Ф▄│Д╦█Е┼╗ no movement
+    CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,  //Ф╜ёЕ╦╦Ф╜╔Е┘╣Е╨∙Г⌡≤Х╥÷И ▐Д╨▒Е▐╟ following gimbal
+    CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, //Е╥╔Г╗▀Е╨∙Г⌡≤Х╖▓Е╨╕Ф▌╖Е┬╤Е╨∙Г⌡≤О╪▄Г■╠Д╨▌Е╨∙Г⌡≤Ф°╙Ф°┴И≥─Х·╨Д╩╙О╪▄Ф∙┘Х─▄Х╖▓Е╨╕Ф≤╞Е┤▐Е▌╩Д╨▒Е▐╟Х╖▓Е╨╕Х─▄Е╬≈Е┬╟О╪▄Е╕┌Ф·°Ф°┴Е╨∙Г⌡≤И≥─Х·╨Д╩╙Х╞╥Ф⌡╢Ф√╟Е╨∙Г⌡≤Г └yawО╪▄pitchО╪▄rollХ╖▓Е╨╕
+                                         //Bascially not following gimbal, chassis move freely
+                                         //Engineer's angle control chassis. If no Gyro in the chassis: angle = position - gimbal angle.
+                                         // If these is a Gyro in the chassis: update chassis's yaw, pitch, roll's angle
+
+    CHASSIS_NO_FOLLOW_YAW,               //Е╨∙Г⌡≤Д╦█Х╥÷И ▐Х╖▓Е╨╕О╪▄Х╖▓Е╨╕Ф≤╞Е╪─Г▌╞Г └О╪▄Д╫├Е┴█Е░▌Е╥╕Е▐ЁФ≤╞Ф°┴И─÷Е╨╕Г▌╞ chassis not following the gimbal
+    CHASSIS_OPEN                         //И│╔Ф▌╖Е≥╗Г └Е─╪Д╧≤Д╩╔Ф╞■Д╬▀Г⌡╢Ф▌╔Е▐▒И─│Е┬╟canФ─╩Г╨©Д╦┼ transmit a portion of RC's signal to the main CAN signal
 } chassis_behaviour_e;
 
-#define CHASSIS_OPEN_RC_SCALE 10 //тзchassis_open дёпмобё╛рё©ьфВЁкрт╦ц╠хюЩ╥╒км╣╫canио
+#define CHASSIS_OPEN_RC_SCALE 10 //Е°╗chassis_open Ф╗║Е·▀Д╦▀О╪▄И│╔Ф▌╖Е≥╗Д╧≤Д╩╔Х╞╔Ф╞■Д╬▀Е▐▒И─│Е┬╟canД╦┼ the portion of the RC's signal
 
 
 

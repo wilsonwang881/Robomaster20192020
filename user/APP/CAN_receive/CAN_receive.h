@@ -2,10 +2,13 @@
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       can_receive.c/h
   * @brief      完成can设备数据收发函数，该文件是通过can中断完成接收
+  *             complete can devices' communication function
+  *             the data are received via can interrupt in this file's implementation
   * @note       该文件不是freeRTOS任务
+  *             the file is not a freeRTOS task
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成 complete
   *
   @verbatim
   ==============================================================================
@@ -39,6 +42,7 @@ typedef enum
 } can_msg_id_e;
 
 //rm电机统一数据结构体
+//uniform data structure for rm motor data
 typedef struct
 {
     uint16_t ecd;
@@ -51,16 +55,23 @@ typedef struct
 extern void CAN_CMD_CHASSIS_RESET_ID(void);
 
 //发送云台控制命令，其中rev为保留字节
+//send tripod control command, rev is the reserved byte
 extern void CAN_CMD_GIMBAL(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev);
 //发送底盘电机控制命令
+//send chassis motor control command
 extern void CAN_CMD_CHASSIS(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
 //返回yaw电机变量地址，通过指针方式获取原始数据
+//return the variable address of the yaw motor, use pointer to obtain raw data
 extern const motor_measure_t *get_Yaw_Gimbal_Motor_Measure_Point(void);
 //返回pitch电机变量地址，通过指针方式获取原始数据
+//return the variable address of the pitch motor, use pointer to obtain raw data
 extern const motor_measure_t *get_Pitch_Gimbal_Motor_Measure_Point(void);
 //返回trigger电机变量地址，通过指针方式获取原始数据
+//return the variable address of the trigger motor, use pointer to obtain raw data
 extern const motor_measure_t *get_Trigger_Motor_Measure_Point(void);
 //返回底盘电机变量地址，通过指针方式获取原始数据,i的范围是0-3，对应0x201-0x204,
+//return the variable address of the chassis motor, use pointer to obtain raw data
+//range for i is between 0 and 3, corresponding to 0x201 to 0x204
 extern const motor_measure_t *get_Chassis_Motor_Measure_Point(uint8_t i);
 
 #if GIMBAL_MOTOR_6020_CAN_LOSE_SLOVE

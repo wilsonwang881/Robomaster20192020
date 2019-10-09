@@ -2,10 +2,13 @@
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       can_receive.c/h
   * @brief      完成can设备数据收发函数，该文件是通过can中断完成接收
+  *             complete can devices' communication function
+  *             the data are received via can interrupt in this file's implementation
   * @note       该文件不是freeRTOS任务
+  *             the file is not a freeRTOS task
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成 complete
   *
   @verbatim
   ==============================================================================
@@ -27,6 +30,7 @@
 #include "Detect_Task.h"
 
 //底盘电机数据读取
+//read data from chassis motors
 #define get_motor_measure(ptr, rx_message)                                                     \
     {                                                                                          \
         (ptr)->last_ecd = (ptr)->ecd;                                                          \
@@ -37,6 +41,7 @@
     }
 
 //云台电机数据读取
+//read data from tripod motors
 #define get_gimbal_motor_measuer(ptr, rx_message)                                              \
     {                                                                                          \
         (ptr)->last_ecd = (ptr)->ecd;                                                          \
@@ -47,8 +52,10 @@
     }
 
 //统一处理can接收函数
+//process can receiving functions all at once
 static void CAN_hook(CanRxMsg *rx_message);
 //声明电机变量
+//declare motor variables
 static motor_measure_t motor_yaw, motor_pit, motor_trigger, motor_chassis[4];
 
 static CanTxMsg GIMBAL_TxMessage;
@@ -57,6 +64,7 @@ static CanTxMsg GIMBAL_TxMessage;
 static uint8_t delay_time = 100;
 #endif
 //can1中断
+//can1 interrupt
 void CAN1_RX0_IRQHandler(void)
 {
     static CanRxMsg rx1_message;
@@ -70,6 +78,7 @@ void CAN1_RX0_IRQHandler(void)
 }
 
 //can2中断
+//can2 interrupt
 void CAN2_RX0_IRQHandler(void)
 {
     static CanRxMsg rx2_message;
@@ -88,6 +97,8 @@ void GIMBAL_lose_slove(void)
 }
 #endif
 //发送云台控制命令，其中rev为保留字节
+//send tripod control command
+//rev is the reserved byte
 void CAN_CMD_GIMBAL(int16_t yaw, int16_t pitch, int16_t shoot, int16_t rev)
 {
     GIMBAL_TxMessage.StdId = CAN_GIMBAL_ALL_ID;
@@ -128,6 +139,8 @@ void TIM6_DAC_IRQHandler(void)
     }
 }
 //CAN 发送 0x700的ID的数据，会引发M3508进入快速设置ID模式
+//CAN send the ID data of 0x700
+//will trigger M3508 to enter the mode of setting ID quickly
 void CAN_CMD_CHASSIS_RESET_ID(void)
 {
 
@@ -149,6 +162,7 @@ void CAN_CMD_CHASSIS_RESET_ID(void)
 }
 
 //发送底盘电机控制命令
+//send chassis motors' control commands
 void CAN_CMD_CHASSIS(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4)
 {
     CanTxMsg TxMessage;
@@ -169,27 +183,38 @@ void CAN_CMD_CHASSIS(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
 }
 
 //返回yaw电机变量地址，通过指针方式获取原始数据
+//return yaw motor variable address
+//obtain raw data via pointer
 const motor_measure_t *get_Yaw_Gimbal_Motor_Measure_Point(void)
 {
     return &motor_yaw;
 }
 //返回pitch电机变量地址，通过指针方式获取原始数据
+//return pitch motor variable address
+//obtain raw data via pointer
 const motor_measure_t *get_Pitch_Gimbal_Motor_Measure_Point(void)
 {
     return &motor_pit;
 }
 //返回trigger电机变量地址，通过指针方式获取原始数据
+//return trigger motor variable address
+//obtain raw data via pointer
 const motor_measure_t *get_Trigger_Motor_Measure_Point(void)
 {
     return &motor_trigger;
 }
 //返回底盘电机变量地址，通过指针方式获取原始数据
+//return chassis motor variable addresses
+//obtain raw data via pointer
 const motor_measure_t *get_Chassis_Motor_Measure_Point(uint8_t i)
 {
     return &motor_chassis[(i & 0x03)];
 }
 
 //统一处理can中断函数，并且记录发送数据的时间，作为离线判断依据
+//function for handling can interrupt all at once
+//also record the time when data are sent
+//use as a clue to determine whether offline or not
 static void CAN_hook(CanRxMsg *rx_message)
 {
     switch (rx_message->StdId)
@@ -197,14 +222,17 @@ static void CAN_hook(CanRxMsg *rx_message)
     case CAN_YAW_MOTOR_ID:
     {
         //处理电机数据宏函数
+        //macro function for handling motor data
         get_gimbal_motor_measuer(&motor_yaw, rx_message);
         //记录时间
+        //record time
         DetectHook(YawGimbalMotorTOE);
         break;
     }
     case CAN_PIT_MOTOR_ID:
     {
         //处理电机数据宏函数
+        //macro function for handling motor data
         get_gimbal_motor_measuer(&motor_pit, rx_message);
         DetectHook(PitchGimbalMotorTOE);
         break;
@@ -212,8 +240,10 @@ static void CAN_hook(CanRxMsg *rx_message)
     case CAN_TRIGGER_MOTOR_ID:
     {
         //处理电机数据宏函数
+        //macro function for handling motor data
         get_motor_measure(&motor_trigger, rx_message);
         //记录时间
+        //record time
         DetectHook(TriggerMotorTOE);
         break;
     }
@@ -224,10 +254,13 @@ static void CAN_hook(CanRxMsg *rx_message)
     {
         static uint8_t i = 0;
         //处理电机ID号
+        //process motor ID
         i = rx_message->StdId - CAN_3508_M1_ID;
         //处理电机数据宏函数
+        //macro function for handling motor data
         get_motor_measure(&motor_chassis[i], rx_message);
         //记录时间
+        //record time
         DetectHook(ChassisMotor1TOE + i);
         break;
     }
