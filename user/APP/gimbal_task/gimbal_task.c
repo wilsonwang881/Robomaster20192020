@@ -16,7 +16,7 @@
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成 complete
   *
   @verbatim
   ==============================================================================
@@ -45,6 +45,7 @@
 #include "task.h"
 
 //电机编码值规整 0—8191
+//motor coding value 0-8191
 #define ECD_Format(ecd)         \
     {                           \
         if ((ecd) > ecd_range)  \
@@ -69,26 +70,37 @@ uint32_t gimbal_high_water;
 #endif
 
 //云台控制所有相关数据
+//all relavent data for tripod control
 static Gimbal_Control_t gimbal_control;
 
 //发送的can 指令
+//send can command
 static int16_t Yaw_Can_Set_Current = 0, Pitch_Can_Set_Current = 0, Shoot_Can_Set_Current = 0;
 
 //云台初始化
+//tripod initialization
 static void GIMBAL_Init(Gimbal_Control_t *gimbal_init);
 //云台pid清零
+//tripod pid rest
 static void Gimbal_PID_clear(Gimbal_PID_t *gimbal_pid_clear);
 //云台状态设置
+//tripod state set
 static void GIMBAL_Set_Mode(Gimbal_Control_t *gimbal_set_mode);
 //云台数据更新
+//tripod data update
 static void GIMBAL_Feedback_Update(Gimbal_Control_t *gimbal_feedback_update);
 //云台状态切换保存数据，例如从陀螺仪状态切换到编码器状态保存目标值
+//save data when tripod state switches
+//for instance, save the target value when the gyroscope state switches to coder state
 static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_change);
 //计算云台电机相对中值的相对角度
+//calculate the relative angle of the relative middle value of the tripod motor
 static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
 //设置云台控制量
+//set the control value for the tripod
 static void GIMBAL_Set_Contorl(Gimbal_Control_t *gimbal_set_control);
 //云台控制pid计算
+//tripod pid calculation
 static void GIMBAL_Control_loop(Gimbal_Control_t *gimbal_control_loop);
 
 static void gimbal_motor_absolute_angle_control(Gimbal_Motor_t *gimbal_motor);
@@ -96,6 +108,8 @@ static void gimbal_motor_relative_angle_control(Gimbal_Motor_t *gimbal_motor);
 static void gimbal_motor_raw_angle_control(Gimbal_Motor_t *gimbal_motor);
 
 //在陀螺仪角度控制下，对控制的目标值进限制以防超最大相对角度
+//restrict the controlled target value to avoid exceeding the maximum relative angle
+//under the control of the gyroscope
 static void GIMBAL_absolute_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add);
 static void GIMBAL_relative_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add);
 static void GIMBAL_PID_Init(Gimbal_PID_t *pid, fp32 maxout, fp32 intergral_limit, fp32 kp, fp32 ki, fp32 kd);
@@ -104,32 +118,37 @@ static fp32 GIMBAL_PID_Calc(Gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_de
 static void calc_gimbal_cali(const Gimbal_Cali_t *gimbal_cali, uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *max_yaw, fp32 *min_yaw, fp32 *max_pitch, fp32 *min_pitch);
 #if GIMBAL_TEST_MODE
 //j-scope 帮助pid调参
+//j-scipe help tune the parameters of the pid
 static void J_scope_gimbal_test(void);
 #endif
 
 void GIMBAL_task(void *pvParameters)
 {
     //等待陀螺仪任务更新陀螺仪数据
+    //wait for the gyroscope task to update gyroscope data
     vTaskDelay(GIMBAL_TASK_INIT_TIME);
     //云台初始化
+    //tripod initialization
     GIMBAL_Init(&gimbal_control);
     //射击初始化
+    //shoot initializating
     shoot_init();
     //判断电机是否都上线
+    //check whether all motors are online
     while (toe_is_error(YawGimbalMotorTOE) || toe_is_error(PitchGimbalMotorTOE) || toe_is_error(TriggerMotorTOE) )
     {
         vTaskDelay(GIMBAL_CONTROL_TIME);
-        GIMBAL_Feedback_Update(&gimbal_control);             //云台数据反馈
+        GIMBAL_Feedback_Update(&gimbal_control);             //云台数据反馈    tripod data feedback
     }
 
     while (1)
     {
-        GIMBAL_Set_Mode(&gimbal_control);                    //设置云台控制模式
-        GIMBAL_Mode_Change_Control_Transit(&gimbal_control); //控制模式切换 控制数据过渡
-        GIMBAL_Feedback_Update(&gimbal_control);             //云台数据反馈
-        GIMBAL_Set_Contorl(&gimbal_control);                 //设置云台控制量
-        GIMBAL_Control_loop(&gimbal_control);                //云台控制PID计算
-        Shoot_Can_Set_Current = shoot_control_loop();        //射击任务控制循环
+        GIMBAL_Set_Mode(&gimbal_control);                    //设置云台控制模式    set the control mode of the tripod
+        GIMBAL_Mode_Change_Control_Transit(&gimbal_control); //控制模式切换 控制数据过渡    control mode switch, control the data transition
+        GIMBAL_Feedback_Update(&gimbal_control);             //云台数据反馈    tripod data feedback
+        GIMBAL_Set_Contorl(&gimbal_control);                 //设置云台控制量    set the control value for the tripod
+        GIMBAL_Control_loop(&gimbal_control);                //云台控制PID计算    tripod control PID calculation
+        Shoot_Can_Set_Current = shoot_control_loop();        //射击任务控制循环    loop the shooting task
 #if YAW_TURN
         Yaw_Can_Set_Current = -gimbal_control.gimbal_yaw_motor.given_current;
 #else
@@ -143,6 +162,9 @@ void GIMBAL_task(void *pvParameters)
 #endif
 
         //云台在遥控器掉线状态即relax 状态，can指令为0，不使用current设置为零的方法，是保证遥控器掉线一定使得云台停止
+        //can command is zero when the tripod is in relax state(remote control offline)
+        //do not use the method of setting to zero via current
+        //to ensure the tripod stops when the remote control is offline
         if (!(toe_is_error(YawGimbalMotorTOE) && toe_is_error(PitchGimbalMotorTOE) && toe_is_error(TriggerMotorTOE)))
         {
             if (toe_is_error(DBUSTOE))
@@ -170,15 +192,20 @@ void GIMBAL_task(void *pvParameters)
 
 /**
   * @brief          云台校准设置，将校准的云台中值以及最小最大机械相对角度
+  *                 Tripod calibration set
+  *                 will caliberate the tripod middle value and the maximum and the minumum value
+  *                 of the mechanical relative angle
   * @author         RM
-  * @param[in]      yaw 中值
-  * @param[in]      pitch 中值
-  * @param[in]      yaw 最大相对角度
-  * @param[in]      yaw 最小相对角度
-  * @param[in]      pitch 最大相对角度
-  * @param[in]      pitch 最小相对角度
-  * @retval         返回空
+  * @param[in]      yaw 中值    yaw middle value
+  * @param[in]      pitch 中值    pitch middle value
+  * @param[in]      yaw 最大相对角度    yaw maximum relative angle
+  * @param[in]      yaw 最小相对角度    yaw minimum relative angle
+  * @param[in]      pitch 最大相对角度    pitch maximum relative angle
+  * @param[in]      pitch 最小相对角度    pitch minimum relative angle
+  * @retval         返回空    return null
   * @waring         这个函数使用到gimbal_control 静态变量导致函数不适用以上通用指针复用
+  *                 The function uses gimbal_control
+  *                 static variable makes the function not suitable for the above generic pointer reusing
   */
 void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch_offset, const fp32 max_yaw, const fp32 min_yaw, const fp32 max_pitch, const fp32 min_pitch)
 {
@@ -194,15 +221,23 @@ void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch_offset
 
 /**
   * @brief          云台校准计算，将校准记录的最大 最小值 来计算云台 中值和最大最小机械角度
+  *                 Tripod calibration calculation
+  *                 will caliberate the recorded maximum, minimum values
+  *                 for calculating the middle, the maximum and the minimum values of the
+  *                 the mechanical angles of the tripod
   * @author         RM
-  * @param[in]      yaw 中值 指针
-  * @param[in]      pitch 中值 指针
-  * @param[in]      yaw 最大相对角度 指针
-  * @param[in]      yaw 最小相对角度 指针
-  * @param[in]      pitch 最大相对角度 指针
-  * @param[in]      pitch 最小相对角度 指针
-  * @retval         返回1 代表成功校准完毕， 返回0 代表未校准完
+  * @param[in]      yaw 中值 指针    yaw middle value pointer
+  * @param[in]      pitch 中值 指针    pitch middle value pointer
+  * @param[in]      yaw 最大相对角度 指针    yaw maximum relative angle pointer
+  * @param[in]      yaw 最小相对角度 指针    yaw minimum relative angle pointer
+  * @param[in]      pitch 最大相对角度 指针    pitch maximum relative angle pointer
+  * @param[in]      pitch 最小相对角度 指针    pitch minimum relative angle pointer
+  * @retval         返回1 代表成功校准完毕， 返回0 代表未校准完    
+  *                 return 1: calibration finishes successfully
+  *                 return 0: calibration not finished
   * @waring         这个函数使用到gimbal_control 静态变量导致函数不适用以上通用指针复用
+  *                 The function uses gimbal_control
+  *                 Static variable makes the function not suitable for the reuse of the above generic pointers
   */
 bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *max_yaw, fp32 *min_yaw, fp32 *max_pitch, fp32 *min_pitch)
 {
@@ -210,6 +245,9 @@ bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *
     {
         gimbal_control.gimbal_cali.step = GIMBAL_CALI_START_STEP;
         //保存进入时候的数据，作为起始数据，来判断最大，最小值
+        //save the data when entering
+        //as the initial data
+        //to determine the maximum and the minimum values
         gimbal_control.gimbal_cali.max_pitch = gimbal_control.gimbal_pitch_motor.absolute_angle;
         gimbal_control.gimbal_cali.max_pitch_ecd = gimbal_control.gimbal_pitch_motor.gimbal_motor_measure->ecd;
         gimbal_control.gimbal_cali.max_yaw = gimbal_control.gimbal_yaw_motor.absolute_angle;
@@ -239,6 +277,9 @@ bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *
 }
 
 //校准计算，相对最大角度，云台中值
+//calibration calculation
+//relative maximum angle
+//middle value of the tripod
 static void calc_gimbal_cali(const Gimbal_Cali_t *gimbal_cali, uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *max_yaw, fp32 *min_yaw, fp32 *max_pitch, fp32 *min_pitch)
 {
     if (gimbal_cali == NULL || yaw_offset == NULL || pitch_offset == NULL || max_yaw == NULL || min_yaw == NULL || max_pitch == NULL || min_pitch == NULL)
@@ -356,32 +397,40 @@ const Gimbal_Motor_t *get_pitch_motor_point(void)
 }
 
 //初始化pid 数据指针
+//initialize pid data pointer
 static void GIMBAL_Init(Gimbal_Control_t *gimbal_init)
 {
 
     static const fp32 Pitch_speed_pid[3] = {PITCH_SPEED_PID_KP, PITCH_SPEED_PID_KI, PITCH_SPEED_PID_KD};
     static const fp32 Yaw_speed_pid[3] = {YAW_SPEED_PID_KP, YAW_SPEED_PID_KI, YAW_SPEED_PID_KD};
     //电机数据指针获取
+    //acquire the motor data pointer
     gimbal_init->gimbal_yaw_motor.gimbal_motor_measure = get_Yaw_Gimbal_Motor_Measure_Point();
     gimbal_init->gimbal_pitch_motor.gimbal_motor_measure = get_Pitch_Gimbal_Motor_Measure_Point();
     //陀螺仪数据指针获取
+    //acquire the gyroscope data pointer
     gimbal_init->gimbal_INT_angle_point = get_INS_angle_point();
     gimbal_init->gimbal_INT_gyro_point = get_MPU6500_Gyro_Data_Point();
     //遥控器数据指针获取
+    //acquire the remote control data pointer
     gimbal_init->gimbal_rc_ctrl = get_remote_control_point();
     //初始化电机模式
+    //motor initializing mode
     gimbal_init->gimbal_yaw_motor.gimbal_motor_mode = gimbal_init->gimbal_yaw_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     gimbal_init->gimbal_pitch_motor.gimbal_motor_mode = gimbal_init->gimbal_pitch_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     //初始化yaw电机pid
+    //initialize yaw motor pid
     GIMBAL_PID_Init(&gimbal_init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_GYRO_ABSOLUTE_PID_MAX_OUT, YAW_GYRO_ABSOLUTE_PID_MAX_IOUT, YAW_GYRO_ABSOLUTE_PID_KP, YAW_GYRO_ABSOLUTE_PID_KI, YAW_GYRO_ABSOLUTE_PID_KD);
     GIMBAL_PID_Init(&gimbal_init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD);
     PID_Init(&gimbal_init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, Yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT);
     //初始化pitch电机pid
+    //initialize pitch motor pid
     GIMBAL_PID_Init(&gimbal_init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_GYRO_ABSOLUTE_PID_MAX_OUT, PITCH_GYRO_ABSOLUTE_PID_MAX_IOUT, PITCH_GYRO_ABSOLUTE_PID_KP, PITCH_GYRO_ABSOLUTE_PID_KI, PITCH_GYRO_ABSOLUTE_PID_KD);
     GIMBAL_PID_Init(&gimbal_init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD);
     PID_Init(&gimbal_init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, Pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT);
 
     //清除所有PID
+    //clear all PID
     gimbal_total_pid_clear(gimbal_init);
 
     GIMBAL_Feedback_Update(gimbal_init);
@@ -414,6 +463,7 @@ static void GIMBAL_Feedback_Update(Gimbal_Control_t *gimbal_feedback_update)
         return;
     }
     //云台数据更新
+    //tripod data update
     gimbal_feedback_update->gimbal_pitch_motor.absolute_angle = *(gimbal_feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
     gimbal_feedback_update->gimbal_pitch_motor.relative_angle = motor_ecd_to_angle_change(gimbal_feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
                                                                                           gimbal_feedback_update->gimbal_pitch_motor.offset_ecd);
@@ -427,6 +477,7 @@ static void GIMBAL_Feedback_Update(Gimbal_Control_t *gimbal_feedback_update)
                                                         - arm_sin_f32(gimbal_feedback_update->gimbal_pitch_motor.relative_angle) * (*(gimbal_feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
 }
 //计算相对角度
+//calculate relative angle
 static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
 {
     int32_t relative_ecd = ecd - offset_ecd;
@@ -443,6 +494,7 @@ static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
 }
 
 //云台状态切换保存，用于状态切换过渡
+//save the tripod state switch, for state switch transition
 static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_change)
 {
     if (gimbal_mode_change == NULL)
@@ -450,6 +502,7 @@ static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_cha
         return;
     }
     //yaw电机状态机切换保存数据
+    //save the data of yaw motor state switch
     if (gimbal_mode_change->gimbal_yaw_motor.last_gimbal_motor_mode != GIMBAL_MOTOR_RAW && gimbal_mode_change->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         gimbal_mode_change->gimbal_yaw_motor.raw_cmd_current = gimbal_mode_change->gimbal_yaw_motor.current_set = gimbal_mode_change->gimbal_yaw_motor.given_current;
@@ -465,6 +518,7 @@ static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_cha
     gimbal_mode_change->gimbal_yaw_motor.last_gimbal_motor_mode = gimbal_mode_change->gimbal_yaw_motor.gimbal_motor_mode;
 
     //pitch电机状态机切换保存数据
+    //save the data of pitch motor state switch
     if (gimbal_mode_change->gimbal_pitch_motor.last_gimbal_motor_mode != GIMBAL_MOTOR_RAW && gimbal_mode_change->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         gimbal_mode_change->gimbal_pitch_motor.raw_cmd_current = gimbal_mode_change->gimbal_pitch_motor.current_set = gimbal_mode_change->gimbal_pitch_motor.given_current;
@@ -482,6 +536,7 @@ static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_cha
 }
 
 //云台控制量设置
+//set the control value of the tripod
 static void GIMBAL_Set_Contorl(Gimbal_Control_t *gimbal_set_control)
 {
     if (gimbal_set_control == NULL)
@@ -494,40 +549,49 @@ static void GIMBAL_Set_Contorl(Gimbal_Control_t *gimbal_set_control)
 
     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, gimbal_set_control);
     //yaw电机模式控制
+    //yaw motor mode control
     if (gimbal_set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         //raw模式下，直接发送控制值
+        //send the control value directly under raw mode
         gimbal_set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
     }
     else if (gimbal_set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
         //gyro模式下，陀螺仪角度控制
+        //gyroscope angle control under gyro mode
         GIMBAL_absolute_angle_limit(&gimbal_set_control->gimbal_yaw_motor, add_yaw_angle);
     }
     else if (gimbal_set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
         //enconde模式下，电机编码角度控制
+        //motor coding angle control under enconde mode
         GIMBAL_relative_angle_limit(&gimbal_set_control->gimbal_yaw_motor, add_yaw_angle);
     }
 
     //pitch电机模式控制
+    //pitch motor mode control
     if (gimbal_set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         //raw模式下，直接发送控制值
+        //send the control value directly under raw mode
         gimbal_set_control->gimbal_pitch_motor.raw_cmd_current = add_pitch_angle;
     }
     else if (gimbal_set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
         //gyro模式下，陀螺仪角度控制
+        //gyroscope angle control under gyro mode
         GIMBAL_absolute_angle_limit(&gimbal_set_control->gimbal_pitch_motor, add_pitch_angle);
     }
     else if (gimbal_set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
         //enconde模式下，电机编码角度控制
+        //motor coding angle control under enconde mode
         GIMBAL_relative_angle_limit(&gimbal_set_control->gimbal_pitch_motor, add_pitch_angle);
     }
 }
 //陀螺仪 控制量限制
+//gyroscope control value restriction
 static void GIMBAL_absolute_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
 {
     static fp32 bias_angle;
@@ -537,14 +601,19 @@ static void GIMBAL_absolute_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
         return;
     }
     //当前控制误差角度
+    //current control error angle
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
     //云台相对角度+ 误差角度 + 新增角度 如果大于 最大机械角度
+    //tripod relative angle + error angle + newly added angle
+    //if greater than the maximum mechanical angle
     if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
     {
         //如果是往最大机械角度控制方向
+        //if towards the maximum mechanical angle control direction
         if (add > 0.0f)
         {
             //计算出一个最大的添加角度，
+            //calculate a maximum added angle
             add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
         }
     }
@@ -567,6 +636,7 @@ static void GIMBAL_relative_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
     }
     gimbal_motor->relative_angle_set += add;
     //是否超过最大 最小值
+    //wheter exceed the maximum or the minimum values
     if (gimbal_motor->relative_angle_set > gimbal_motor->max_relative_angle)
     {
         gimbal_motor->relative_angle_set = gimbal_motor->max_relative_angle;
@@ -577,6 +647,7 @@ static void GIMBAL_relative_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
     }
 }
 //云台控制状态使用不同控制pid
+//tripod control state uses different control pid
 static void GIMBAL_Control_loop(Gimbal_Control_t *gimbal_control_loop)
 {
     if (gimbal_control_loop == NULL)
@@ -584,36 +655,44 @@ static void GIMBAL_Control_loop(Gimbal_Control_t *gimbal_control_loop)
         return;
     }
     //yaw不同模式对于不同的控制函数
+    //different modes for yaw correspond to different control function
     if (gimbal_control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         //raw控制
+        //raw control
         gimbal_motor_raw_angle_control(&gimbal_control_loop->gimbal_yaw_motor);
     }
     else if (gimbal_control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
         //gyro角度控制
+        //gyro angle control
         gimbal_motor_absolute_angle_control(&gimbal_control_loop->gimbal_yaw_motor);
     }
     else if (gimbal_control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
         //enconde角度控制
+        //enconde angle control
         gimbal_motor_relative_angle_control(&gimbal_control_loop->gimbal_yaw_motor);
     }
 
     //pitch不同模式对于不同的控制函数
+    //different modes for pitch correspond to different control functions
     if (gimbal_control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
         //raw控制
+        //raw control
         gimbal_motor_raw_angle_control(&gimbal_control_loop->gimbal_pitch_motor);
     }
     else if (gimbal_control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
         //gyro角度控制
+        //gyro angle control
         gimbal_motor_absolute_angle_control(&gimbal_control_loop->gimbal_pitch_motor);
     }
     else if (gimbal_control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
         //enconde角度控制
+        //enconde angle control
         gimbal_motor_relative_angle_control(&gimbal_control_loop->gimbal_pitch_motor);
     }
 }
@@ -625,9 +704,12 @@ static void gimbal_motor_absolute_angle_control(Gimbal_Motor_t *gimbal_motor)
         return;
     }
     //角度环，速度环串级pid调试
+    //angle loop
+    //speed loop serial level pid testing
     gimbal_motor->motor_gyro_set = GIMBAL_PID_Calc(&gimbal_motor->gimbal_motor_absolute_angle_pid, gimbal_motor->absolute_angle, gimbal_motor->absolute_angle_set, gimbal_motor->motor_gyro);
     gimbal_motor->current_set = PID_Calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set);
     //控制值赋值
+    //assign control value
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
 
@@ -639,9 +721,12 @@ static void gimbal_motor_relative_angle_control(Gimbal_Motor_t *gimbal_motor)
     }
 
     //角度环，速度环串级pid调试
+    //angle look
+    //speed look serial level pid testing
     gimbal_motor->motor_gyro_set = GIMBAL_PID_Calc(&gimbal_motor->gimbal_motor_relative_angle_pid, gimbal_motor->relative_angle, gimbal_motor->relative_angle_set, gimbal_motor->motor_gyro);
     gimbal_motor->current_set = PID_Calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set);
     //控制值赋值
+    //assign control values
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
 static void gimbal_motor_raw_angle_control(Gimbal_Motor_t *gimbal_motor)
@@ -715,6 +800,7 @@ static fp32 GIMBAL_PID_Calc(Gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_de
 }
 
 //pid数据清理
+//pid data cleanup
 static void Gimbal_PID_clear(Gimbal_PID_t *gimbal_pid_clear)
 {
     if (gimbal_pid_clear == NULL)
