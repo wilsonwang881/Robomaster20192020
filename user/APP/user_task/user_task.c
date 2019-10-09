@@ -2,10 +2,13 @@
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       user_task.c/h
   * @brief      一个普通心跳程序，如果设备无错误，绿灯1Hz闪烁,然后获取姿态角
-  * @note       
+  *             a normal heartbeat program
+  *             if the device has no errors, the green light blinks at 1Hz,
+  *             then acquire the posture angle
+  * @note
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成 complete
   *
   @verbatim
   ==============================================================================
@@ -34,6 +37,7 @@ uint32_t UserTaskStack;
 #endif
 
 //姿态角 单位度
+//posture angle in degrees
 fp32 angle_degree[3] = {0.0f, 0.0f, 0.0f};
 
 void UserTask(void *pvParameters)
@@ -41,11 +45,13 @@ void UserTask(void *pvParameters)
 
     const volatile fp32 *angle;
     //获取姿态角指针
+    //acquire the posture angle pointer
     angle = get_INS_angle_point();
     while (1)
     {
 
         //姿态角 将rad 变成 度，除这里的姿态角的单位为度，其他地方的姿态角，单位均为弧度
+        //
         angle_degree[0] = (*(angle + INS_YAW_ADDRESS_OFFSET)) * 57.3f;
         angle_degree[1] = (*(angle + INS_PITCH_ADDRESS_OFFSET)) * 57.3f;
         angle_degree[2] = (*(angle + INS_ROLL_ADDRESS_OFFSET)) * 57.3f;
