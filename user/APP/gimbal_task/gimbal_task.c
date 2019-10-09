@@ -5,6 +5,14 @@
   *             故而设置目标角度均为范围，存在许多对角度计算的函数。云台主要分为2种
   *             状态，陀螺仪控制状态是利用板载陀螺仪解算的姿态角进行控制，编码器控制
   *             状态是通过电机反馈的编码值控制的校准，此外还有校准状态，停止状态等。
+  *             Complete tripod control tasks. Due to the fact that the tripod 
+  *             uses angle computed from the gyroscope, its range is (-pi, pi).
+  *             Hence the set target angles are all ranges. Many functions exist
+  *             for computing relative angle. Tripod has two modes. Gyroscope control
+  *             state is to use the position angle computed using the onboard 
+  *             gyroscope to control. The coder control mode is to use the feedback
+  *             value on the coding value given by the motor. Other modes such as
+  *             calibration mode and stopping mode exist.
   * @note       
   * @history
   *  Version    Date            Author          Modification

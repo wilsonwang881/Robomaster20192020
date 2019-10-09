@@ -2,14 +2,13 @@
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       chassis_behaviour.c/h
   * @brief      完成底盘行为任务。
-  * @note       
+  * @note
   * @history
   *  Version    Date            Author          Modification
   *  V1.0.0     Dec-26-2018     RM              1. 完成
   *
   @verbatim
   ==============================================================================
-
   ==============================================================================
   @endverbatim
   ****************************(C) COPYRIGHT 2016 DJI****************************
@@ -21,15 +20,19 @@
 
 typedef enum
 {
-  CHASSIS_ZERO_FORCE,                  //底盘无力
-  CHASSIS_NO_MOVE,                     //底盘保持不动
-  CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,  //正常步兵底盘跟随云台
-  CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, //工程底盘角度控制底盘，由于底盘未有陀螺仪，故而角度是减去云台角度而得到，如果有底盘陀螺仪请更新底盘的yaw，pitch，roll角度
-  CHASSIS_NO_FOLLOW_YAW,               //底盘不跟随角度，角度是开环的，但前后左右是有速度环
-  CHASSIS_OPEN                         //遥控器的值乘以比例直接发送到can总线上
+    CHASSIS_ZERO_FORCE,                  //底盘无力 no force
+    CHASSIS_NO_MOVE,                     //底盘保持不动 no movement
+    CHASSIS_INFANTRY_FOLLOW_GIMBAL_YAW,  //正常步兵底盘跟随云台 following gimbal
+    CHASSIS_ENGINEER_FOLLOW_CHASSIS_YAW, //工程底盘角度控制底盘，由于底盘未有陀螺仪，故而角度是减去云台角度而得到，如果有底盘陀螺仪请更新底盘的yaw，pitch，roll角度
+                                         //Bascially not following gimbal, chassis move freely
+                                         //Engineer's angle control chassis. If no Gyro in the chassis: angle = position - gimbal angle.
+                                         // If these is a Gyro in the chassis: update chassis's yaw, pitch, roll's angle
+
+    CHASSIS_NO_FOLLOW_YAW,               //底盘不跟随角度，角度是开环的，但前后左右是有速度环 chassis not following the gimbal
+    CHASSIS_OPEN                         //遥控器的值乘以比例直接发送到can总线上 transmit a portion of RC's signal to the main CAN signal
 } chassis_behaviour_e;
 
-#define CHASSIS_OPEN_RC_SCALE 10 //在chassis_open 模型下，遥控器乘以该比例发送到can上
+#define CHASSIS_OPEN_RC_SCALE 10 //在chassis_open 模型下，遥控器乘以该比例发送到can上 the portion of the RC's signal
 
 
 
