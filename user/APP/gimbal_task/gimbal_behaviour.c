@@ -5,10 +5,18 @@
   *             故而设置目标角度均为范围，存在许多对角度计算的函数。云台主要分为2种
   *             状态，陀螺仪控制状态是利用板载陀螺仪解算的姿态角进行控制，编码器控制
   *             状态是通过电机反馈的编码值控制的校准，此外还有校准状态，停止状态等。
+  *             Finish tripod control task. Due to the fact that the tripod use
+  *             the angle computed from the gyroscope, its range is between -pi
+  *             and pi. Therefore its set targets are all ranges. Many functions
+  *             for computing the angles exist. The tripod has two modes, the 
+  *             gyroscope-control mode uses the angle computed by the onboard 
+  *             gyroscope. The coder-control mode is the calibration controlled
+  *             by the code that is feedback from the motor. Other modes include
+  *             calibration mode, stopping mode, ect
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成 complete
   *
   @verbatim
   ==============================================================================
@@ -26,17 +34,21 @@
 #include "user_lib.h"
 
 ////云台校准蜂鸣器响声
+// tripod calibration beeping
 //#define GIMBALWarnBuzzerOn() buzzer_on(31, 20000)
 //#define GIMBALWarnBuzzerOFF() buzzer_off()
 
 #define int_abs(x) ((x) > 0 ? (x) : (-x))
 /**
   * @brief          遥控器的死区判断，因为遥控器的拨杆在中位的时候，不一定是发送1024过来，
+  *                 remote control dead zone control. It is because when the joystick
+  *                 of the remote control is in the middle position, it is not necessarily
+  *                 sending 1024.
   * @author         RM
-  * @param[in]      输入的遥控器值
-  * @param[in]      输出的死区处理后遥控器值
-  * @param[in]      死区值
-  * @retval         返回空
+  * @param[in]      输入的遥控器值 input value from the remote control
+  * @param[in]      输出的死区处理后遥控器值 processed output dead zone value
+  * @param[in]      死区值 dead zone value
+  * @retval         返回空 return null
   */
 #define rc_deadline_limit(input, output, dealine)        \
     {                                                    \
@@ -52,15 +64,18 @@
 
 /**
   * @brief          云台校准的通过判断角速度来判断云台是否到达极限位置
+  *                 calibrated by the tripod, use the angular speed to 
+  *                 determine whether the tripod is at extreme positions
   * @author         RM
-  * @param[in]      对应轴的角速度，单位rad/s
+  * @param[in]      对应轴的角速度，单位rad/s record axial angular speed in rad/s
   * @param[in]      计时时间，到达GIMBAL_CALI_STEP_TIME的时间后归零
-  * @param[in]      记录的角度 rad
-  * @param[in]      反馈的角度 rad
-  * @param[in]      记录的编码值 raw
-  * @param[in]      反馈的编码值 raw
-  * @param[in]      校准的步骤 完成一次 加一
-  * @retval         返回空
+  *                 recording time, reset to 0 after it reaches GIMBAL_CALT_STEP_TIME
+  * @param[in]      记录的角度 rad    recorded angle, in rad
+  * @param[in]      反馈的角度 rad    feedback angle, in rad
+  * @param[in]      记录的编码值 raw  recorded coding value, raw
+  * @param[in]      反馈的编码值 raw  feedback coding calue, raw
+  * @param[in]      校准的步骤 完成一次 加一   calibration steps, add one when it is completed once
+  * @retval         返回空            return null
   */
 #define GIMBAL_CALI_GYRO_JUDGE(gyro, cmd_time, angle_set, angle, ecd_set, ecd, step) \
     {                                                                                \
@@ -79,60 +94,83 @@
 
 /**
   * @brief          云台行为状态机设置，因为在cali等模式下使用了return，故而再用了一个函数
+  *                 tripod behaviour state machine set. Because return is used under modes
+  *                 like cali, another function is used.
   * @author         RM
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  * @param[in]      云台数据指针    tripod data pointer
+  * @retval         返回空          return null
   */
 static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set);
 
 /**
   * @brief          云台无力控制，在这个模式下发送的yaw，pitch 是电机控制原始值，云台电机发送can零控制量，使得云台无力
+  *                 tripod no-power control. Under this mode, the yaw and the pitch sent
+  *                 are the raw motor control value. Tripod motor sends can zero control
+  *                 value and no-powers the tripod
   * @author         RM
   * @param[in]      发送yaw电机的原始值，会直接通过can 发送到电机
+  *                 send the raw value of the yaw motor via can to the motor directly
   * @param[in]      发送pitch电机的原始值，会直接通过can 发送到电机
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 send pitch motor raw value via can to the motor directly
+  * @param[in]      云台数据指针    tripod data pointer
+  * @retval         返回空    return  null
   */
 static void gimbal_zero_force_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 /**
   * @brief          云台初始化控制，电机是陀螺仪角度控制，云台先抬起pitch轴，后旋转yaw轴
+  *                 Tripod initialization control. Motoris the gyroscope angle control.
+  *                 Tripod lifts the pitch axis then rotates the yaw axis.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 yaw axis angle control. It is the increment of the angle in rad.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 pitch axis angle control. It is the increment of the angle in rad.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_init_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 
 /**
   * @brief          云台校准控制，电机是raw控制，云台先抬起pitch，放下pitch，在正转yaw，最后反转yaw，记录当时的角度和编码值
+  *                 Tripod calibration control. Motor is controlled using raw.
+  *                 Tripod lifts up pitch first, lowers pitch, then rotates yaw clockwisely and finally rotates yaw
+  *                 anticlockwisely, recording the angle and the coding value at that time.
   * @author         RM
   * @param[in]      发送yaw电机的原始值，会直接通过can 发送到电机
+  *                 Send the raw value of the yaw motor via can to the motor directly.
   * @param[in]      发送pitch电机的原始值，会直接通过can 发送到电机
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Send the raw value of the pitch motor via can to the motor directly.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 /**
   * @brief          云台陀螺仪控制，电机是陀螺仪角度控制，
+  *                 Tripod gyroscope control. The motor is gyroscope angle control.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 yaw axis angle control. It is the increment of the angle in rad.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 pitch axis angle control. It is the increment of the angle in raw.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 /**
   * @brief          云台编码值控制，电机是相对角度控制，
+  *                 Tripod coding value control. Motor is the relative angle control.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 yaw axis angle control. It is the increment of the angle in rad.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 pitch axis angle control. It is the increment of the angle in rad.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null./\
   */
 static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 /**
   * @brief          云台进入遥控器无输入控制，电机是相对角度控制，
+  *                 
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
