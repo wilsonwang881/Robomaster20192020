@@ -170,12 +170,15 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control
 static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 /**
   * @brief          云台进入遥控器无输入控制，电机是相对角度控制，
-  *                 
+  *                 Tripod enters remote control no input control mode.
+  *                 The motor is relative angle control.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 yaw axis angle control. It is the increment of the angle in radians.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 pitch axis angle control. It is the increment of the angle in radians.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set);
 
@@ -184,9 +187,10 @@ static gimbal_behaviour_e gimbal_behaviour = GIMBAL_ZERO_FORCE;
 
 /**
   * @brief          云台行为状态机以及电机状态机设置
+  *                 Tripod behaviour state machine and motor state machine setup.
   * @author         RM
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 
 gimbal_motor_mode_e test = GIMBAL_MOTOR_ENCONDE;
@@ -197,9 +201,11 @@ void gimbal_behaviour_mode_set(Gimbal_Control_t *gimbal_mode_set)
         return;
     }
     //云台行为状态机设置
+    //tripod behaviour state machine setup.
     gimbal_behavour_set(gimbal_mode_set);
 
     //根据云台行为状态机设置电机状态机
+    //setup the motor state machine based on the tripod behaviour state machine.
     if (gimbal_behaviour == GIMBAL_ZERO_FORCE)
     {
         gimbal_mode_set->gimbal_yaw_motor.gimbal_motor_mode = GIMBAL_MOTOR_RAW;
@@ -234,11 +240,14 @@ void gimbal_behaviour_mode_set(Gimbal_Control_t *gimbal_mode_set)
 
 /**
   * @brief          云台行为控制，根据不同行为采用不同控制函数
+  *                 Tripod bahaviour control. Use different control functions based on different behaviour.
   * @author         RM
   * @param[in]      设置的yaw角度增加值，单位 rad
+  *                 Set the yaw angle increment in radians.
   * @param[in]      设置的pitch角度增加值，单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Set the pitch angle increment in radians.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null
   */
 void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, Gimbal_Control_t *gimbal_control_set)
 {
@@ -252,6 +261,7 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, Gimbal_Control
     static int16_t yaw_channel = 0, pitch_channel = 0;
 
     //将遥控器的数据处理死区 int16_t yaw_channel,pitch_channel
+    //remote control data processing dead zone
     rc_deadline_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[YawChannel], yaw_channel, RC_deadband);
     rc_deadline_limit(gimbal_control_set->gimbal_rc_ctrl->rc.ch[PitchChannel], pitch_channel, RC_deadband);
 
@@ -283,15 +293,17 @@ void gimbal_behaviour_control_set(fp32 *add_yaw, fp32 *add_pitch, Gimbal_Control
         gimbal_motionless_control(&rc_add_yaw, &rc_add_pit, gimbal_control_set);
     }
     //将控制增加量赋值
+    //assign the increment value of control
     *add_yaw = rc_add_yaw;
     *add_pitch = rc_add_pit;
 }
 
 /**
   * @brief          云台在某些行为下，需要底盘不动
+  *                 Under certain conditions, the tripod needs the chassis to be stationary. 
   * @author         RM
   * @param[in]      void
-  * @retval         返回空
+  * @retval         返回空    Return null.
   */
 
 bool_t gimbal_cmd_to_chassis_stop(void)
@@ -308,9 +320,10 @@ bool_t gimbal_cmd_to_chassis_stop(void)
 
 /**
   * @brief          云台在某些行为下，需要射击停止
+  *                 Under certain conditions, the tripod needs to stop shooting.
   * @author         RM
   * @param[in]      void
-  * @retval         返回空
+  * @retval         返回空    Return null.
   */
 
 bool_t gimbal_cmd_to_shoot_stop(void)
@@ -326,9 +339,11 @@ bool_t gimbal_cmd_to_shoot_stop(void)
 }
 /**
   * @brief          云台行为状态机设置，因为在cali等模式下使用了return，故而再用了一个函数
+  *                 Tripod bebaviour state machine setup.
+  *                 Because return is used under modes like cali, another function is used.
   * @author         RM
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
 {
@@ -337,11 +352,13 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
         return;
     }
     //校准行为，return 不会设置其他的模式
+    //Calibration behaviour, return will not set other modes.
     if (gimbal_behaviour == GIMBAL_CALI && gimbal_mode_set->gimbal_cali.step != GIMBAL_CALI_END_STEP)
     {
         return;
     }
     //如果外部使得校准步骤从0 变成 start，则进入校准模式
+    //If external conditions change the calibration step from 0 to start, then enter calibration mode.
     if (gimbal_mode_set->gimbal_cali.step == GIMBAL_CALI_START_STEP)
     {
         gimbal_behaviour = GIMBAL_CALI;
@@ -349,16 +366,19 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
     }
 
     //初始化模式判断是否到达中值位置
+    //Initialization mode determines whether the middle value mode is reached.
     if (gimbal_behaviour == GIMBAL_INIT)
     {
         static uint16_t init_time = 0;
         static uint16_t init_stop_time = 0;
         init_time++;
         //到达中值 计时
+        //record time when the middle value is reached.
         if ((fabs(gimbal_mode_set->gimbal_yaw_motor.relative_angle - INIT_YAW_SET) < GIMBAL_INIT_ANGLE_ERROR &&
              fabs(gimbal_mode_set->gimbal_pitch_motor.absolute_angle - INIT_PITCH_SET) < GIMBAL_INIT_ANGLE_ERROR))
         {
             //到达初始化位置
+            //reach the initialization position.
             if (init_stop_time < GIMBAL_INIT_STOP_TIME)
             {
                 init_stop_time++;
@@ -367,6 +387,7 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
         else
         {
             //没有到达初始化位置，时间计时
+            //time recording when the initialization position is not reached.
             if (init_time < GIMBAL_INIT_TIME)
             {
                 init_time++;
@@ -374,6 +395,9 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
         }
 
         //超过初始化最大时间，或者已经稳定到中值一段时间，退出初始化状态开关打下档，或者掉线
+        //exit the initialization state, offline the switch
+        //when the time exceeds the maximum initialization time
+        //or when the middle value has been reached stably for a period of time.
         if (init_time < GIMBAL_INIT_TIME && init_stop_time < GIMBAL_INIT_STOP_TIME &&
             !switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[ModeChannel]) && !toe_is_error(DBUSTOE))
         {
@@ -387,6 +411,7 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
     }
 
     //开关控制 云台状态
+    //switch control, tripod state
     if (switch_is_down(gimbal_mode_set->gimbal_rc_ctrl->rc.s[ModeChannel]))
     {
         gimbal_behaviour = GIMBAL_ZERO_FORCE;
@@ -407,6 +432,7 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
     }
 
     //判断进入init状态机
+    //determine wheter it is in init state machine
     {
         static gimbal_behaviour_e last_gimbal_behaviour = GIMBAL_ZERO_FORCE;
         if (last_gimbal_behaviour == GIMBAL_ZERO_FORCE && gimbal_behaviour != GIMBAL_ZERO_FORCE)
@@ -420,6 +446,7 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
     if (gimbal_behaviour == GIMBAL_ABSOLUTE_ANGLE)
     {
         //遥控器 键盘均无输入，进入motionless状态
+        //enter motionless state when the remote control and the keyboard both have no input.
         if (int_abs(gimbal_mode_set->gimbal_rc_ctrl->rc.ch[0]) < GIMBAL_MOTIONLESS_RC_DEADLINE && int_abs(gimbal_mode_set->gimbal_rc_ctrl->rc.ch[1]) < GIMBAL_MOTIONLESS_RC_DEADLINE && int_abs(gimbal_mode_set->gimbal_rc_ctrl->rc.ch[2]) < GIMBAL_MOTIONLESS_RC_DEADLINE && int_abs(gimbal_mode_set->gimbal_rc_ctrl->rc.ch[3]) < GIMBAL_MOTIONLESS_RC_DEADLINE && int_abs(gimbal_mode_set->gimbal_rc_ctrl->mouse.x) < GIMBAL_MOTIONLESS_RC_DEADLINE && int_abs(gimbal_mode_set->gimbal_rc_ctrl->mouse.y) < GIMBAL_MOTIONLESS_RC_DEADLINE && gimbal_mode_set->gimbal_rc_ctrl->key.v == 0 && gimbal_mode_set->gimbal_rc_ctrl->mouse.press_l == 0 && gimbal_mode_set->gimbal_rc_ctrl->mouse.press_r == 0)
         {
             if (motionless_time < GIMBAL_MOTIONLESS_TIME_MAX)
@@ -447,11 +474,16 @@ static void gimbal_behavour_set(Gimbal_Control_t *gimbal_mode_set)
 
 /**
   * @brief          云台无力控制，在这个模式下发送的yaw，pitch 是电机控制原始值，云台电机发送can零控制量，使得云台无力
+  *                 Tripod no-power control.
+  *                 Yaw and pitch sent under this mode are the raw control value of the motor.
+  *                 Tripod motor sends can zero control value to no-power the tripod.
   * @author         RM
   * @param[in]      发送yaw电机的原始值，会直接通过can 发送到电机
+  *                 Send yaw motor's raw value. It will be sent to the motor via can directly.
   * @param[in]      发送pitch电机的原始值，会直接通过can 发送到电机
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Send the raw value of the pitch motor via can to the motor directly.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_zero_force_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set)
 {
@@ -465,11 +497,15 @@ static void gimbal_zero_force_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *
 }
 /**
   * @brief          云台初始化控制，电机是陀螺仪角度控制，云台先抬起pitch轴，后旋转yaw轴
+  *                 Tripod initialization control. The motor is gyroscope angle control.
+  *                 Tripod lifts up pitch axis first then rotates yaw axis.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 Yaw axis angle control. It is the increment of the angle in radians.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Pitch axis angle control. It is the increment of the angle in radians.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_init_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set)
 {
@@ -479,6 +515,7 @@ static void gimbal_init_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal
     }
 
     //初始化状态控制量计算
+    //initialization state control value computation.
     if (fabs(INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) > GIMBAL_INIT_ANGLE_ERROR)
     {
         *pitch = (INIT_PITCH_SET - gimbal_control_set->gimbal_pitch_motor.absolute_angle) * GIMBAL_INIT_PITCH_SPEED;
@@ -493,11 +530,16 @@ static void gimbal_init_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal
 
 /**
   * @brief          云台校准控制，电机是raw控制，云台先抬起pitch，放下pitch，在正转yaw，最后反转yaw，记录当时的角度和编码值
+  *                 Tripod calibration control. Motor is raw control. The tripod lifts up pitch first then lowers pitch.
+  *                 Then rotates yaw clockwisely. Then rotates yaw anticlockwisely.
+  *                 Record the angle and the coding value at that time.
   * @author         RM
   * @param[in]      发送yaw电机的原始值，会直接通过can 发送到电机
+  *                 Send the raw value of the yaw motor. It will be sent to the motor via can directly.
   * @param[in]      发送pitch电机的原始值，会直接通过can 发送到电机
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Send the raw value of the pitch motor. It will be sent to the motor via can directly.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set)
 {
@@ -514,6 +556,7 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal
         *yaw = 0;
 
         //判断陀螺仪数据， 并记录最大最小角度数据
+        //determine gyroscope data and record and the max and min angle data.
         GIMBAL_CALI_GYRO_JUDGE(gimbal_control_set->gimbal_pitch_motor.motor_gyro, cali_time, gimbal_control_set->gimbal_cali.max_pitch,
                                gimbal_control_set->gimbal_pitch_motor.absolute_angle, gimbal_control_set->gimbal_cali.max_pitch_ecd,
                                gimbal_control_set->gimbal_pitch_motor.gimbal_motor_measure->ecd, gimbal_control_set->gimbal_cali.step);
@@ -553,11 +596,14 @@ static void gimbal_cali_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal
 }
 /**
   * @brief          云台陀螺仪控制，电机是陀螺仪角度控制，
+  *                 Tripod gyroscope control. Motor is gyroscope angle control.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 Yaw axis angle control. It is the increment of the angle in radians.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Pitch axis angle control. It is the increment of the angle in radians.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set)
 {
@@ -577,6 +623,7 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control
             {
                 gimbal_turn_flag = 1;
                 //保存掉头的目标值
+                //save the target value for turning around.
                 gimbal_end_angle = rad_format(gimbal_control_set->gimbal_yaw_motor.absolute_angle + PI);
             }
         }
@@ -585,6 +632,9 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control
         if (gimbal_turn_flag)
         {
             //不断控制到掉头的目标值，正转，反装是随机
+            //keep controlling the target value for turning around.
+            //rotating clockwisely
+            //rotating anticlockwisely is random.
             if (rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle) > 0.0f)
             {
                 *yaw += TurnSpeed;
@@ -595,6 +645,7 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control
             }
         }
         //到达pi （180°）后停止
+        //stop after reaching pi radians.
         if (gimbal_turn_flag && fabs(rad_format(gimbal_end_angle - gimbal_control_set->gimbal_yaw_motor.absolute_angle)) < 0.01f)
         {
             gimbal_turn_flag = 0;
@@ -603,11 +654,14 @@ static void gimbal_absolute_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control
 }
 /**
   * @brief          云台编码值控制，电机是相对角度控制，
+  *                 Tripod coding value control. The motor is relative angle control.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 Yaw axis angle control. It is the increment of the angle in radians.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Pitch axis angle control. It is the increment of the angle in radians.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set)
 {
@@ -616,14 +670,19 @@ static void gimbal_relative_angle_control(fp32 *yaw, fp32 *pitch, Gimbal_Control
         return;
     }
     //不需要处理，
+    //Do not need processing.
 }
 /**
   * @brief          云台进入遥控器无输入控制，电机是相对角度控制，
+  *                 Tripod enters remote control no input control.
+  *                 Motor is the relative angle control.
   * @author         RM
   * @param[in]      yaw轴角度控制，为角度的增量 单位 rad
+  *                 yaw axis angle control. It is the increment of the angle in radians.
   * @param[in]      pitch轴角度控制，为角度的增量 单位 rad
-  * @param[in]      云台数据指针
-  * @retval         返回空
+  *                 Pitch axis angle control. It is the increment of the angle in radians.
+  * @param[in]      云台数据指针    Tripod data pointer.
+  * @retval         返回空    Return null.
   */
 static void gimbal_motionless_control(fp32 *yaw, fp32 *pitch, Gimbal_Control_t *gimbal_control_set)
 {
