@@ -178,7 +178,11 @@
 
   <Group>
     <GroupName>STARTUP</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -198,7 +202,11 @@
 
   <Group>
     <GroupName>CMSIS</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -742,7 +750,11 @@
 
   <Group>
     <GroupName>freeRTOS</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -846,7 +858,11 @@
 
   <Group>
     <GroupName>AHRS</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -926,7 +942,11 @@
 
   <Group>
     <GroupName>DSP</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -946,7 +966,11 @@
 
   <Group>
     <GroupName>user_lib</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -966,7 +990,11 @@
 
   <Group>
     <GroupName>main</GroupName>
+<<<<<<< HEAD
+    <tvExp>1</tvExp>
+=======
     <tvExp>0</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -986,7 +1014,11 @@
 
   <Group>
     <GroupName>hardware</GroupName>
+<<<<<<< HEAD
+    <tvExp>0</tvExp>
+=======
     <tvExp>1</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -1174,7 +1206,11 @@
 
   <Group>
     <GroupName>APP</GroupName>
+<<<<<<< HEAD
+    <tvExp>0</tvExp>
+=======
     <tvExp>1</tvExp>
+>>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
