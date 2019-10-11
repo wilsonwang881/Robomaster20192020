@@ -1,19 +1,14 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       user_task.c/h
-<<<<<<< HEAD
-  * @brief      Ò»¸öÆÕÍ¨ĞÄÌø³ÌĞò£¬Èç¹ûÉè±¸ÎŞ´íÎó£¬ÂÌµÆ1HzÉÁË¸,È»ºó»ñÈ¡×ËÌ¬½Ç//a normal heart beats program, if the equipement has no error, green light on and off with 1HZ, and obtains positional angle
-  * @note       
-=======
-  * @brief      Ò»¸öÆÕÍ¨ĞÄÌø³ÌĞò£¬Èç¹ûÉè±¸ÎŞ´íÎó£¬ÂÌµÆ1HzÉÁË¸,È»ºó»ñÈ¡×ËÌ¬½Ç
+  * @brief      ä¸€ä¸ªæ™®é€šå¿ƒè·³ç¨‹åºï¼Œå¦‚æœè®¾å¤‡æ— é”™è¯¯ï¼Œç»¿ç¯1Hzé—ªçƒ,ç„¶åè·å–å§¿æ€è§’
   *             a normal heartbeat program
   *             if the device has no errors, the green light blinks at 1Hz,
   *             then acquire the posture angle
   * @note
->>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É complete
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ complete
   *
   @verbatim
   ==============================================================================
@@ -40,37 +35,21 @@
 #if INCLUDE_uxTaskGetStackHighWaterMark
 uint32_t UserTaskStack;
 #endif
-<<<<<<< HEAD
- 
-//×ËÌ¬½Ç µ¥Î»¶È //positional angle, the unit is degree
-=======
 
-//×ËÌ¬½Ç µ¥Î»¶È
+//å§¿æ€è§’ å•ä½åº¦
 //posture angle in degrees
->>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
 fp32 angle_degree[3] = {0.0f, 0.0f, 0.0f};
  
 void UserTask(void *pvParameters)
 {
  
     const volatile fp32 *angle;
-<<<<<<< HEAD
-    //»ñÈ¡×ËÌ¬½ÇÖ¸Õë //obtain the pointer of positional angle
+    //è·å–å§¿æ€è§’æŒ‡é’ˆ //obtain the pointer of positional angle
     angle = get_INS_angle_point();
     while (1)
     {
  
-        //×ËÌ¬½Ç ½«rad ±ä³É ¶È£¬³ıÕâÀïµÄ×ËÌ¬½ÇµÄµ¥Î»Îª¶È£¬ÆäËûµØ·½µÄ×ËÌ¬½Ç£¬µ¥Î»¾ùÎª»¡¶È //positional angle change radian to degree, only the unit of potitional angle here is degree, all other positional angles¡¯ unit is radian
-=======
-    //»ñÈ¡×ËÌ¬½ÇÖ¸Õë
-    //acquire the posture angle pointer
-    angle = get_INS_angle_point();
-    while (1)
-    {
-
-        //×ËÌ¬½Ç ½«rad ±ä³É ¶È£¬³ıÕâÀïµÄ×ËÌ¬½ÇµÄµ¥Î»Îª¶È£¬ÆäËûµØ·½µÄ×ËÌ¬½Ç£¬µ¥Î»¾ùÎª»¡¶È
-        //
->>>>>>> 65bd981e23dda075f84854d36b7c6abccdc87ffa
+        //å§¿æ€è§’ å°†rad å˜æˆ åº¦ï¼Œé™¤è¿™é‡Œçš„å§¿æ€è§’çš„å•ä½ä¸ºåº¦ï¼Œå…¶ä»–åœ°æ–¹çš„å§¿æ€è§’ï¼Œå•ä½å‡ä¸ºå¼§åº¦ //positional angle change radian to degree, only the unit of potitional angle here is degree, all other positional anglesâ€™ unit is radian
         angle_degree[0] = (*(angle + INS_YAW_ADDRESS_OFFSET)) * 57.3f;
         angle_degree[1] = (*(angle + INS_PITCH_ADDRESS_OFFSET)) * 57.3f;
         angle_degree[2] = (*(angle + INS_ROLL_ADDRESS_OFFSET)) * 57.3f;
