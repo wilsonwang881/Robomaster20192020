@@ -1,19 +1,27 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       shoot.c/h
-  * @brief      Éä»÷¹¦ÄÜ£¬ÆäÖÐÉä»÷µÄ³õÊ¼»¯£¬ÒÔ¼°Ñ­»·¶¼ÊÇÔÚÔÆÌ¨ÈÎÎñÖÐµ÷ÓÃ£¬¹Ê¶ø´ËÎÄ¼þ
-  *             ²»ÊÇfreeRTOSÈÎÎñ£¬Éä»÷·Ö¹Ø±Õ×´Ì¬£¬×¼±¸×´Ì¬£¬Éä»÷×´Ì¬£¬ÒÔ¼°Íê³É×´Ì¬
-  *             ¹Ø±Õ×´Ì¬ÊÇ¹Ø±ÕÄ¦²ÁÂÖÒÔ¼°¼¤¹â£¬×¼±¸×´Ì¬ÊÇ½«×Óµ¯²¦µ½Î¢ÐÍ¿ª¹Ø´¦£¬Éä»÷×´
-  *             Ì¬ÊÇ½«×Óµ¯Éä³ö£¬ÅÐ¶ÏÎ¢ÐÍ¿ª¹ØÖµ£¬½øÈëÍê³É×´Ì¬£¬Íê³É×´Ì¬Í¨¹ýÅÐ¶ÏÒ»¶¨Ê±¼ä
-  *             Î¢ÐÍ¿ª¹ØÎÞ×Óµ¯ÈÏÎªÒÑ¾­½«×Óµ¯Éä³ö¡£
+  * @brief      å°„å‡»åŠŸèƒ½ï¼Œå…¶ä¸­å°„å‡»çš„åˆå§‹åŒ–ï¼Œä»¥åŠå¾ªçŽ¯éƒ½æ˜¯åœ¨äº‘å°ä»»åŠ¡ä¸­è°ƒç”¨ï¼Œæ•…è€Œæ­¤æ–‡ä»¶
+  *             ä¸æ˜¯freeRTOSä»»åŠ¡ï¼Œå°„å‡»åˆ†å…³é—­çŠ¶æ€ï¼Œå‡†å¤‡çŠ¶æ€ï¼Œå°„å‡»çŠ¶æ€ï¼Œä»¥åŠå®ŒæˆçŠ¶æ€
+  *             å…³é—­çŠ¶æ€æ˜¯å…³é—­æ‘©æ“¦è½®ä»¥åŠæ¿€å…‰ï¼Œå‡†å¤‡çŠ¶æ€æ˜¯å°†å­å¼¹æ‹¨åˆ°å¾®åž‹å¼€å…³å¤„ï¼Œå°„å‡»çŠ¶
+  *             æ€æ˜¯å°†å­å¼¹å°„å‡ºï¼Œåˆ¤æ–­å¾®åž‹å¼€å…³å€¼ï¼Œè¿›å…¥å®ŒæˆçŠ¶æ€ï¼Œå®ŒæˆçŠ¶æ€é€šè¿‡åˆ¤æ–­ä¸€å®šæ—¶é—´
+  *             å¾®åž‹å¼€å…³æ— å­å¼¹è®¤ä¸ºå·²ç»å°†å­å¼¹å°„å‡ºã€‚
+	* 
+	* @english 		Shooting functions are all called in the gimbal_task. The file is
+	*							not freeRTOS task. Shooting has four modes, Off Mode, Ready Mode, 
+	*							Shoot Mode, Finished Mode. Off Mode is turning off laser and flywheel
+	*							Ready Mode is to load the bullet into the gun. Shoot Mode is to shoot 
+	*							the bullet and determine the value of the microswitch. Finished mode 
+	*							determine if the bullet is shot out using the microswitch, there will 
+	*							be a delay time after.
+	*
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ
   *
   @verbatim
   ==============================================================================
-
   ==============================================================================
   @endverbatim
   ****************************(C) COPYRIGHT 2016 DJI****************************
@@ -36,19 +44,44 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define shoot_fric1_on(pwm) fric1_on((pwm)) //Ä¦²ÁÂÖ1pwmºê¶¨Òå
-#define shoot_fric2_on(pwm) fric2_on((pwm)) //Ä¦²ÁÂÖ2pwmºê¶¨Òå
-#define shoot_fric_off() fric_off()         //¹Ø±ÕÁ½¸öÄ¦²ÁÂÖ
+//æ‘©æ“¦è½®1pwmå®å®šä¹‰
+//Flywheel Wheel 1, Define PWM On as fric1_on((pwm))
+#define shoot_fric1_on(pwm) fric1_on((pwm))
 
-#define shoot_laser_on() laser_on()   //¼¤¹â¿ªÆôºê¶¨Òå
-#define shoot_laser_off() laser_off() //¼¤¹â¹Ø±Õºê¶¨Òå
+//æ‘©æ“¦è½®2pwmå®å®šä¹‰
+//Flywheel Wheel 2, Define PWM On as fric1_on((pwm))
+#define shoot_fric2_on(pwm) fric2_on((pwm)) 
 
-static const RC_ctrl_t *shoot_rc; //Ò£¿ØÆ÷Ö¸Õë
+//å…³é—­ä¸¤ä¸ªæ‘©æ“¦è½®
+//Turn off both flywheels
+#define shoot_fric_off() fric_off()         
 
-static PidTypeDef trigger_motor_pid;         //µç»úPID
-static Shoot_Motor_t trigger_motor;          //Éä»÷Êý¾Ý
-static shoot_mode_e shoot_mode = SHOOT_STOP; //Éä»÷×´Ì¬»ú
-//Î¢¶¯¿ª¹ØIO
+//æ¿€å…‰å¼€å¯å®å®šä¹‰
+//Define laser on as laser_on()
+#define shoot_laser_on() laser_on()
+
+//æ¿€å…‰å…³é—­å®å®šä¹‰
+//define laser off as laser_off()
+#define shoot_laser_off() laser_off() 
+
+//é¥æŽ§å™¨æŒ‡é’ˆ
+//Remote Control pointer
+static const RC_ctrl_t *shoot_rc; 
+
+//ç”µæœºPID
+//Motor PID
+static PidTypeDef trigger_motor_pid;    
+
+//å°„å‡»æ•°æ®
+//Shooting Data
+static Shoot_Motor_t trigger_motor;     
+
+//å°„å‡»çŠ¶æ€æœº
+//Shooting Mode
+static shoot_mode_e shoot_mode = SHOOT_STOP; 
+
+//å¾®åŠ¨å¼€å…³IO
+//Microswitch IO port
 #define Butten_Trig_Pin GPIO_ReadInputDataBit(GPIOF, GPIO_Pin_10)
 
 extern void getTriggerMotorMeasure(motor_measure_t *motor);
@@ -56,35 +89,42 @@ extern void getTriggerMotorMeasure(motor_measure_t *motor);
 
 
 /**
-  * @brief          Éä»÷×´Ì¬»úÉèÖÃ£¬Ò£¿ØÆ÷ÉÏ²¦Ò»´Î¿ªÆô£¬ÔÙÉÏ²¦¹Ø±Õ£¬ÏÂ²¦1´Î·¢Éä1¿Å£¬Ò»Ö±´¦ÔÚÏÂ£¬Ôò³ÖÐø·¢Éä£¬ÓÃÓÚ3min×¼±¸Ê±¼äÇåÀí×Óµ¯
+  * @brief          å°„å‡»çŠ¶æ€æœºè®¾ç½®ï¼Œé¥æŽ§å™¨ä¸Šæ‹¨ä¸€æ¬¡å¼€å¯ï¼Œå†ä¸Šæ‹¨å…³é—­ï¼Œä¸‹æ‹¨1æ¬¡å‘å°„1é¢—ï¼Œä¸€ç›´å¤„åœ¨ä¸‹ï¼Œåˆ™æŒç»­å‘å°„ï¼Œç”¨äºŽ3minå‡†å¤‡æ—¶é—´æ¸…ç†å­å¼¹
+	* @english				Shoot mode firing, flip upward once to turn on, flip up again to turn off. 
+	*									Flip downward once to shoot once. Hold downward to continue shooting. 
+	*									Hold shooting is for clearing the ammo/bullet. (ammo box has to be empty before each match start  
   * @author         RM
   * @param[in]      void
   * @retval         void
   */
 static void Shoot_Set_Mode(void);
 /**
-  * @brief          Éä»÷Êý¾Ý¸üÐÂ
+  * @brief          å°„å‡»æ•°æ®æ›´æ–°
+	* @english				Update shooter with data
   * @author         RM
   * @param[in]      void
   * @retval         void
   */
 static void Shoot_Feedback_Update(void);
 /**
-  * @brief          Éä»÷¿ØÖÆ£¬¿ØÖÆ²¦µ¯µç»ú½Ç¶È£¬Íê³ÉÒ»´Î·¢Éä
+  * @brief          å°„å‡»æŽ§åˆ¶ï¼ŒæŽ§åˆ¶æ‹¨å¼¹ç”µæœºè§’åº¦ï¼Œå®Œæˆä¸€æ¬¡å‘å°„
+	* @english				Shooting control, Control the angle of the motor, Completer a shot
   * @author         RM
   * @param[in]      void
   * @retval         void
   */
 static void shoot_bullet_control(void);
 /**
-  * @brief          Éä»÷Íê³É¿ØÖÆ£¬ÅÐ¶ÏÎ¢¶¯¿ª¹ØÒ»¶ÎÊ±¼äÎÞ×Óµ¯À´ÅÐ¶ÏÒ»´Î·¢Éä
+  * @brief          å°„å‡»å®ŒæˆæŽ§åˆ¶ï¼Œåˆ¤æ–­å¾®åŠ¨å¼€å…³ä¸€æ®µæ—¶é—´æ— å­å¼¹æ¥åˆ¤æ–­ä¸€æ¬¡å‘å°„
+	* @english				Shooting completion control, using microswitch and delay to determine a shot
   * @author         RM
   * @param[in]      void
   * @retval         void
   */
 static void shoot_done_control(void);
 /**
-  * @brief          Éä»÷×¼±¸¿ØÖÆ£¬½«×Óµ¯ËÍµ½Î¢¶¯¿ª¹Ø´¦£¬
+  * @brief          å°„å‡»å‡†å¤‡æŽ§åˆ¶ï¼Œå°†å­å¼¹é€åˆ°å¾®åŠ¨å¼€å…³å¤„ï¼Œ
+	* @english				Ready to shoot control, send bullet to microswitch
   * @author         RM
   * @param[in]      void
   * @retval         void
@@ -93,22 +133,31 @@ static void shoot_ready_control(void);
 
 
 /**
-  * @brief          Éä»÷³õÊ¼»¯£¬³õÊ¼»¯PID£¬Ò£¿ØÆ÷Ö¸Õë£¬µç»úÖ¸Õë
+  * @brief          å°„å‡»åˆå§‹åŒ–ï¼Œåˆå§‹åŒ–PIDï¼Œé¥æŽ§å™¨æŒ‡é’ˆï¼Œç”µæœºæŒ‡é’ˆ
+	* @english				Shooting INIT, Init PID, RC pointer, Motor Pointer
   * @author         RM
   * @param[in]      void
-  * @retval         ·µ»Ø¿Õ
+  * @retval         è¿”å›žç©º Return Null
   */
 void shoot_init(void)
 {
 
     static const fp32 Trigger_speed_pid[3] = {TRIGGER_ANGLE_PID_KP, TRIGGER_ANGLE_PID_KI, TRIGGER_ANGLE_PID_KD};
-    //Ò£¿ØÆ÷Ö¸Õë
+		
+    //é¥æŽ§å™¨æŒ‡é’ˆ
+		//Remote control pointer
     shoot_rc = get_remote_control_point();
-    //µç»úÖ¸Õë
+		
+    //ç”µæœºæŒ‡é’ˆ
+		//Trigger motor pointer
     trigger_motor.shoot_motor_measure = get_Trigger_Motor_Measure_Point();
-    //³õÊ¼»¯PID
+		
+    //åˆå§‹åŒ–PID
+		//Init PID
     PID_Init(&trigger_motor_pid, PID_POSITION, Trigger_speed_pid, TRIGGER_READY_PID_MAX_OUT, TRIGGER_READY_PID_MAX_IOUT);
-    //¸üÐÂÊý¾Ý
+		
+    //æ›´æ–°æ•°æ®
+		//Update Data
     Shoot_Feedback_Update();
     ramp_init(&trigger_motor.fric1_ramp, SHOOT_CONTROL_TIME * 0.001f, Fric_DOWN, Fric_OFF);
     ramp_init(&trigger_motor.fric2_ramp, SHOOT_CONTROL_TIME * 0.001f, Fric_DOWN, Fric_OFF);
@@ -123,31 +172,44 @@ void shoot_init(void)
     trigger_motor.BulletShootCnt = 0;
 }
 /**
-  * @brief          Éä»÷Ñ­»·
+  * @brief          å°„å‡»å¾ªçŽ¯
+	* @english				Shooting Cycle
   * @author         RM
   * @param[in]      void
-  * @retval         ·µ»Øcan¿ØÖÆÖµ
+  * @retval         è¿”å›žcanæŽ§åˆ¶å€¼ Return CAN control value
   */
 int16_t shoot_control_loop(void)
-{
-    int16_t shoot_CAN_Set_Current; //·µ»ØµÄcanÖµ
+{		
+		//è¿”å›žçš„canå€¼
+		//return CAN Value
+    int16_t shoot_CAN_Set_Current; 
+	
+		//è®¾ç½®çŠ¶æ€æœº
+		//Set shoot mode
+    Shoot_Set_Mode();   
 
-    Shoot_Set_Mode();        //ÉèÖÃ×´Ì¬»ú
-    Shoot_Feedback_Update(); //¸üÐÂÊý¾Ý
+		//æ›´æ–°æ•°æ®
+		//Update Data
+    Shoot_Feedback_Update(); 
 
-    //·¢Éä×´Ì¬¿ØÖÆ
+    //å‘å°„çŠ¶æ€æŽ§åˆ¶
+		//If shoot Mode is SHOOT_BULLET
     if (shoot_mode == SHOOT_BULLET)
     {
         trigger_motor_pid.max_out = TRIGGER_BULLET_PID_MAX_OUT;
         trigger_motor_pid.max_iout = TRIGGER_BULLET_PID_MAX_IOUT;
         shoot_bullet_control();
     }
-    //·¢ÉäÍê³É×´Ì¬¿ØÖÆ
+		
+    //å‘å°„å®ŒæˆçŠ¶æ€æŽ§åˆ¶
+		//If shoot Mode is SHOOT_DONE
     else if (shoot_mode == SHOOT_DONE)
     {
         shoot_done_control();
     }
-    //·¢Éä×¼±¸×´Ì¬¿ØÖÆ
+		
+    //å‘å°„å‡†å¤‡çŠ¶æ€æŽ§åˆ¶
+		//if shoot mode is SHOOT_READY
     else if (shoot_mode == SHOOT_READY)
     {
         trigger_motor_pid.max_out = TRIGGER_READY_PID_MAX_OUT;
@@ -165,15 +227,18 @@ int16_t shoot_control_loop(void)
     }
     else
     {
-        //Ä¦²ÁÂÖpwm
+        //æ‘©æ“¦è½®pwm
+				//Flywheel PWM
         static uint16_t fric_pwm1 = Fric_OFF;
         static uint16_t fric_pwm2 = Fric_OFF;
 
+				//æ¿€å…‰å¼€å¯
+				//Laser on
+        shoot_laser_on();      
 
-        shoot_laser_on();       //¼¤¹â¿ªÆô
 
-
-        //Ä¦²ÁÂÖÐèÒªÒ»¸ö¸öÐ±²¨¿ªÆô£¬²»ÄÜÍ¬Ê±Ö±½Ó¿ªÆô£¬·ñÔò¿ÉÄÜµç»ú²»×ª
+        //æ‘©æ“¦è½®éœ€è¦ä¸€ä¸ªä¸ªæ–œæ³¢å¼€å¯ï¼Œä¸èƒ½åŒæ—¶ç›´æŽ¥å¼€å¯ï¼Œå¦åˆ™å¯èƒ½ç”µæœºä¸è½¬
+				//The flywheels must be turned on one at a time otherwise they will not work
         ramp_calc(&trigger_motor.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
 
         if(trigger_motor.fric1_ramp.out == trigger_motor.fric1_ramp.max_value)
@@ -187,7 +252,8 @@ int16_t shoot_control_loop(void)
         }
 
 
-//Êó±êÓÒ¼ü°´ÏÂ¼ÓËÙÄ¦²ÁÂÖ£¬Ê¹µÃ×ó¼üµÍËÙÉä»÷£¬ ÓÒ¼ü¸ßËÙÉä»÷
+				//é¼ æ ‡å³é”®æŒ‰ä¸‹åŠ é€Ÿæ‘©æ“¦è½®ï¼Œä½¿å¾—å·¦é”®ä½Žé€Ÿå°„å‡»ï¼Œ å³é”®é«˜é€Ÿå°„å‡»
+				//Press the right mouse button to accelerate the flywheel, so that the left button shoots at a low speed, and the right button shoots at a high speed.
         static uint16_t up_time = 0;
         if (trigger_motor.press_r)
         {
@@ -212,7 +278,8 @@ int16_t shoot_control_loop(void)
         shoot_fric1_on(fric_pwm1);
         shoot_fric2_on(fric_pwm2);
 
-        //¼ÆËã²¦µ¯ÂÖµç»úPID
+        //è®¡ç®—æ‹¨å¼¹è½®ç”µæœºPID
+				//Calculate the flywheel motor PID
         PID_Calc(&trigger_motor_pid, trigger_motor.speed, trigger_motor.speed_set);
 
         trigger_motor.given_current = (int16_t)(trigger_motor_pid.out);
@@ -223,7 +290,10 @@ int16_t shoot_control_loop(void)
 }
 
 /**
-  * @brief          Éä»÷×´Ì¬»úÉèÖÃ£¬Ò£¿ØÆ÷ÉÏ²¦Ò»´Î¿ªÆô£¬ÔÙÉÏ²¦¹Ø±Õ£¬ÏÂ²¦1´Î·¢Éä1¿Å£¬Ò»Ö±´¦ÔÚÏÂ£¬Ôò³ÖÐø·¢Éä£¬ÓÃÓÚ3min×¼±¸Ê±¼äÇåÀí×Óµ¯
+  * @brief          å°„å‡»çŠ¶æ€æœºè®¾ç½®ï¼Œé¥æŽ§å™¨ä¸Šæ‹¨ä¸€æ¬¡å¼€å¯ï¼Œå†ä¸Šæ‹¨å…³é—­ï¼Œä¸‹æ‹¨1æ¬¡å‘å°„1é¢—ï¼Œä¸€ç›´å¤„åœ¨ä¸‹ï¼Œåˆ™æŒç»­å‘å°„ï¼Œç”¨äºŽ3minå‡†å¤‡æ—¶é—´æ¸…ç†å­å¼¹
+	* @english				Shoot mode firing, flip upward once to turn on, flip up again to turn off. 
+	*									Flip downward once to shoot once. Hold downward to continue shooting. 
+	*									Hold shooting is for clearing the ammo/bullet. (ammo box has to be empty before each match start  
   * @author         RM
   * @param[in]      void
   * @retval         void
@@ -232,7 +302,8 @@ static void Shoot_Set_Mode(void)
 {
     static int8_t last_s = RC_SW_UP;
 
-    //ÉÏ²¦ÅÐ¶Ï£¬ Ò»´Î¿ªÆô£¬ÔÙ´Î¹Ø±Õ
+    //ä¸Šæ‹¨åˆ¤æ–­ï¼Œ ä¸€æ¬¡å¼€å¯ï¼Œå†æ¬¡å…³é—­
+		//Flip upward detection. 1st time for turning it one, the second time for turning it off
     if ((switch_is_up(shoot_rc->rc.s[Shoot_RC_Channel]) && !switch_is_up(last_s) && shoot_mode == SHOOT_STOP))
     {
         shoot_mode = SHOOT_READY;
@@ -242,18 +313,22 @@ static void Shoot_Set_Mode(void)
         shoot_mode = SHOOT_STOP;
     }
 
-    //´¦ÓÚÖÐµµ£¬ ¿ÉÒÔÊ¹ÓÃ¼üÅÌ¿ªÆôÄ¦²ÁÂÖ
+    //å¤„äºŽä¸­æ¡£ï¼Œ å¯ä»¥ä½¿ç”¨é”®ç›˜å¼€å¯æ‘©æ“¦è½®
+		//Flip to middle, then we can use keyboard to control the shooting
     if (switch_is_mid(shoot_rc->rc.s[Shoot_RC_Channel]) && (shoot_rc->key.v & SHOOT_ON_KEYBOARD) && shoot_mode == SHOOT_STOP)
     {
         shoot_mode = SHOOT_READY;
     }
-    //´¦ÓÚÖÐµµ£¬ ¿ÉÒÔÊ¹ÓÃ¼üÅÌ¹Ø±ÕÄ¦²ÁÂÖ
+		
+    //å¤„äºŽä¸­æ¡£ï¼Œ å¯ä»¥ä½¿ç”¨é”®ç›˜å…³é—­æ‘©æ“¦è½®
+		//Flip to middle, then we can use keyboard to control the shooting
     else if (switch_is_mid(shoot_rc->rc.s[Shoot_RC_Channel]) && (shoot_rc->key.v & SHOOT_OFF_KEYBOARD) && shoot_mode == SHOOT_READY)
     {
         shoot_mode = SHOOT_STOP;
     }
 
-    //Èç¹ûÔÆÌ¨×´Ì¬ÊÇ ÎÞÁ¦×´Ì¬£¬¾Í¹Ø±ÕÉä»÷
+    //å¦‚æžœäº‘å°çŠ¶æ€æ˜¯ æ— åŠ›çŠ¶æ€ï¼Œå°±å…³é—­å°„å‡»
+		//If gimbal is powered off, stop shooting
     if (gimbal_cmd_to_shoot_stop())
     {
         shoot_mode = SHOOT_STOP;
@@ -261,13 +336,16 @@ static void Shoot_Set_Mode(void)
 
     if (shoot_mode == SHOOT_READY)
     {
-        //ÏÂ²¦Ò»´Î»òÕßÊó±ê°´ÏÂÒ»´Î£¬½øÈëÉä»÷×´Ì¬
+        //ä¸‹æ‹¨ä¸€æ¬¡æˆ–è€…é¼ æ ‡æŒ‰ä¸‹ä¸€æ¬¡ï¼Œè¿›å…¥å°„å‡»çŠ¶æ€
+				//Press switch down once or press down mouse to set shoot_mode to SHOOT_BULLET
         if ((switch_is_down(shoot_rc->rc.s[Shoot_RC_Channel]) && !switch_is_down(last_s)) || (trigger_motor.press_l && trigger_motor.last_press_l == 0) || (trigger_motor.press_r && trigger_motor.last_press_r == 0))
         {
             shoot_mode = SHOOT_BULLET;
             trigger_motor.last_butter_count = trigger_motor.BulletShootCnt;
         }
-        //Êó±ê³¤°´Ò»Ö±½øÈëÉä»÷×´Ì¬ ±£³ÖÁ¬·¢
+				
+        //é¼ æ ‡é•¿æŒ‰ä¸€ç›´è¿›å…¥å°„å‡»çŠ¶æ€ ä¿æŒè¿žå‘
+				//hold down the mouse to enter auto state
         if ((trigger_motor.press_l_time == PRESS_LONG_TIME) || (trigger_motor.press_r_time == PRESS_LONG_TIME) || (trigger_motor.rc_s_time == RC_S_LONG_TIME))
         {
             if (shoot_mode != SHOOT_DONE && trigger_motor.key == SWITCH_TRIGGER_ON)
@@ -280,7 +358,8 @@ static void Shoot_Set_Mode(void)
     last_s = shoot_rc->rc.s[Shoot_RC_Channel];
 }
 /**
-  * @brief          Éä»÷Êý¾Ý¸üÐÂ
+  * @brief          å°„å‡»æ•°æ®æ›´æ–°
+	* @english				Shooting Data Update
   * @author         RM
   * @param[in]      void
   * @retval         void
@@ -292,16 +371,19 @@ static void Shoot_Feedback_Update(void)
     static fp32 speed_fliter_2 = 0.0f;
     static fp32 speed_fliter_3 = 0.0f;
 
-    //²¦µ¯ÂÖµç»úËÙ¶ÈÂË²¨Ò»ÏÂ
+    //æ‹¨å¼¹è½®ç”µæœºé€Ÿåº¦æ»¤æ³¢ä¸€ä¸‹
+		//Get the flywheel motor speed filter
     static const fp32 fliter_num[3] = {1.725709860247969f, -0.75594777109163436f, 0.030237910843665373f};
 
-    //¶þ½×µÍÍ¨ÂË²¨
+    //äºŒé˜¶ä½Žé€šæ»¤æ³¢
+		//Second order filtering
     speed_fliter_1 = speed_fliter_2;
     speed_fliter_2 = speed_fliter_3;
     speed_fliter_3 = speed_fliter_2 * fliter_num[0] + speed_fliter_1 * fliter_num[1] + (trigger_motor.shoot_motor_measure->speed_rpm * Motor_RMP_TO_SPEED) * fliter_num[2];
     trigger_motor.speed = speed_fliter_3;
 
-    //µç»úÈ¦ÊýÖØÖÃ£¬ ÒòÎªÊä³öÖáÐý×ªÒ»È¦£¬ µç»úÖáÐý×ª 36È¦£¬½«µç»úÖáÊý¾Ý´¦Àí³ÉÊä³öÖáÊý¾Ý£¬ÓÃÓÚ¿ØÖÆÊä³öÖá½Ç¶È
+    //ç”µæœºåœˆæ•°é‡ç½®ï¼Œ å› ä¸ºè¾“å‡ºè½´æ—‹è½¬ä¸€åœˆï¼Œ ç”µæœºè½´æ—‹è½¬ 36åœˆï¼Œå°†ç”µæœºè½´æ•°æ®å¤„ç†æˆè¾“å‡ºè½´æ•°æ®ï¼Œç”¨äºŽæŽ§åˆ¶è¾“å‡ºè½´è§’åº¦
+		//The number of motor turns is reset. Because the output shaft rotates once, the motor shaft rotates 36 times, and the motor shaft data is processed into output shaft data for controlling the output shaft angle.
     if (trigger_motor.shoot_motor_measure->ecd - trigger_motor.shoot_motor_measure->last_ecd > Half_ecd_range)
     {
         trigger_motor.ecd_count--;
@@ -320,16 +402,23 @@ static void Shoot_Feedback_Update(void)
         trigger_motor.ecd_count = FULL_COUNT - 1;
     }
 
-    //¼ÆËãÊä³öÖá½Ç¶È
+    //è®¡ç®—è¾“å‡ºè½´è§’åº¦
+		//Calculate the output shaft angle
     trigger_motor.angle = (trigger_motor.ecd_count * ecd_range + trigger_motor.shoot_motor_measure->ecd) * Motor_ECD_TO_ANGLE;
-    //Î¢¶¯¿ª¹Ø
+		
+    //å¾®åŠ¨å¼€å…³
+		//Micro Switch
     trigger_motor.key = Butten_Trig_Pin;
-    //Êó±ê°´¼ü
+		
+    //é¼ æ ‡æŒ‰é”®
+		//Mouse Button
     trigger_motor.last_press_l = trigger_motor.press_l;
     trigger_motor.last_press_r = trigger_motor.press_r;
     trigger_motor.press_l = shoot_rc->mouse.press_l;
     trigger_motor.press_r = shoot_rc->mouse.press_r;
-    //³¤°´¼ÆÊ±
+		
+    //é•¿æŒ‰è®¡æ—¶
+		//Determine if press is long press
     if (trigger_motor.press_l)
     {
         if (trigger_motor.press_l_time < PRESS_LONG_TIME)
@@ -354,7 +443,8 @@ static void Shoot_Feedback_Update(void)
         trigger_motor.press_r_time = 0;
     }
 
-    //Éä»÷¿ª¹ØÏÂµµÊ±¼ä¼ÆÊ±
+    //å°„å‡»å¼€å…³ä¸‹æ¡£æ—¶é—´è®¡æ—¶
+		//Timing for flip downward calculation. 
     if (shoot_mode != SHOOT_STOP && switch_is_down(shoot_rc->rc.s[Shoot_RC_Channel]))
     {
 
@@ -369,14 +459,16 @@ static void Shoot_Feedback_Update(void)
     }
 }
 /**
-  * @brief          Éä»÷¿ØÖÆ£¬¿ØÖÆ²¦µ¯µç»ú½Ç¶È£¬Íê³ÉÒ»´Î·¢Éä
+  * @brief          å°„å‡»æŽ§åˆ¶ï¼ŒæŽ§åˆ¶æ‹¨å¼¹ç”µæœºè§’åº¦ï¼Œå®Œæˆä¸€æ¬¡å‘å°„
+	* @english				Shooting control, control the angle of the motor, shoot
   * @author         RM
   * @param[in]      void
   * @retval         void
   */
 static void shoot_bullet_control(void)
 {
-    //×Óµ¯Éä³öÅÐ¶Ï
+    //å­å¼¹å°„å‡ºåˆ¤æ–­
+		//Determine when to input bullet
     if (trigger_motor.key == SWITCH_TRIGGER_OFF)
     {
         trigger_motor.shoot_done = 1;
@@ -386,7 +478,8 @@ static void shoot_bullet_control(void)
         trigger_motor.set_angle = trigger_motor.angle;
     }
 
-    //Ã¿´Î²¦¶¯ 1/4PIµÄ½Ç¶È
+    //æ¯æ¬¡æ‹¨åŠ¨ 1/4PIçš„è§’åº¦
+		//Each time PI/4 happens
     if (trigger_motor.move_flag == 0 && shoot_mode == SHOOT_BULLET)
     {
         trigger_motor.set_angle = rad_format(trigger_motor.set_angle + PI_Four);
@@ -394,14 +487,17 @@ static void shoot_bullet_control(void)
         trigger_motor.move_flag = 1;
     }
 
-    //µ½´ï½Ç¶ÈÅÐ¶Ï
+    //åˆ°è¾¾è§’åº¦åˆ¤æ–­
+		//Determine arrival angle
     if (rad_format(trigger_motor.set_angle - trigger_motor.angle) > 0.05f)
     {
-        //Ã»µ½´ïÒ»Ö±ÉèÖÃÐý×ªËÙ¶È
+        //æ²¡åˆ°è¾¾ä¸€ç›´è®¾ç½®æ—‹è½¬é€Ÿåº¦
+				//Set rotation speed
         trigger_motor.speed_set = TRIGGER_SPEED;
         trigger_motor.run_time = xTaskGetTickCount();
 
-        //¶Â×ªÅÐ¶Ï
+        //å µè½¬åˆ¤æ–­
+				//Delay determination
         if (trigger_motor.run_time - trigger_motor.cmd_time > BLOCK_TIME && trigger_motor.run_time - trigger_motor.cmd_time < REVERSE_TIME + BLOCK_TIME && fabs(trigger_motor.speed) < REVERSE_SPEED_LIMIT)
         {
             trigger_motor.speed_set = -TRIGGER_SPEED;
@@ -417,7 +513,8 @@ static void shoot_bullet_control(void)
     }
 }
 /**
-  * @brief          Éä»÷Íê³É¿ØÖÆ£¬ÅÐ¶ÏÎ¢¶¯¿ª¹ØÒ»¶ÎÊ±¼äÎÞ×Óµ¯À´ÅÐ¶ÏÒ»´Î·¢Éä
+  * @brief          å°„å‡»å®ŒæˆæŽ§åˆ¶ï¼Œåˆ¤æ–­å¾®åŠ¨å¼€å…³ä¸€æ®µæ—¶é—´æ— å­å¼¹æ¥åˆ¤æ–­ä¸€æ¬¡å‘å°„
+	* @english				shoot_done_control, use microswitch and a dealy to determine when shooting occurs
   * @author         RM
   * @param[in]      void
   * @retval         void
@@ -425,7 +522,9 @@ static void shoot_bullet_control(void)
 static void shoot_done_control(void)
 {
     trigger_motor.speed_set = 0.0f;
-    //Éä»÷Íê³ÉÅÐ¶Ï£¬ÅÐ¶ÏÎ¢¶¯¿ª¹ØÒ»¶ÎÊ±¼äÎÞ×Óµ¯
+	
+    //å°„å‡»å®Œæˆåˆ¤æ–­ï¼Œåˆ¤æ–­å¾®åŠ¨å¼€å…³ä¸€æ®µæ—¶é—´æ— å­å¼¹
+		//The shot was determined and no follow up shot is determined
     if (trigger_motor.key == SWITCH_TRIGGER_OFF)
     {
         if (trigger_motor.shoot_done_time < SHOOT_DONE_KEY_OFF_TIME)
@@ -444,7 +543,8 @@ static void shoot_done_control(void)
     }
 }
 /**
-  * @brief          Éä»÷×¼±¸¿ØÖÆ£¬½«×Óµ¯ËÍµ½Î¢¶¯¿ª¹Ø´¦£¬
+  * @brief          å°„å‡»å‡†å¤‡æŽ§åˆ¶ï¼Œå°†å­å¼¹é€åˆ°å¾®åŠ¨å¼€å…³å¤„ï¼Œ
+	* @english				shoot-ready_control, send bullet to microswitch
   * @author         RM
   * @param[in]      void
   * @retval         void
@@ -459,7 +559,8 @@ static void shoot_ready_control(void)
 
     if (trigger_motor.key == SWITCH_TRIGGER_ON)
     {
-        //ÅÐ¶Ï×Óµ¯µ½´ïÎ¢¶¯¿ª¹Ø´¦
+        //åˆ¤æ–­å­å¼¹åˆ°è¾¾å¾®åŠ¨å¼€å…³å¤„
+				//Determine that the bullet reaches the micro switch
         trigger_motor.set_angle = trigger_motor.angle;
         trigger_motor_pid.out = 0.0f;
         trigger_motor_pid.Iout = 0.0f;
@@ -470,12 +571,14 @@ static void shoot_ready_control(void)
     }
     else if (trigger_motor.key == SWITCH_TRIGGER_OFF && trigger_motor.key_time < KEY_OFF_JUGUE_TIME)
     {
-        //ÅÐ¶ÏÎÞ×Óµ¯Ò»¶ÎÊ±¼ä
+        //åˆ¤æ–­æ— å­å¼¹ä¸€æ®µæ—¶é—´
+				//Determine if no more bullets are coming
         trigger_motor.key_time++;
     }
     else if (trigger_motor.key == SWITCH_TRIGGER_OFF && trigger_motor.key_time == KEY_OFF_JUGUE_TIME)
     {
-        //Î¢¶¯¿ª¹ØÒ»¶ÎÊ±¼äÃ»ÓÐ×Óµ¯£¬½øÈë²¦µ¯£¬Ò»´ÎÐý×ª 1/10PIµÄ½Ç¶È
+        //å¾®åŠ¨å¼€å…³ä¸€æ®µæ—¶é—´æ²¡æœ‰å­å¼¹ï¼Œè¿›å…¥æ‹¨å¼¹ï¼Œä¸€æ¬¡æ—‹è½¬ 1/10PIçš„è§’åº¦
+				//If the microswitch has no bullets for a while, enters the bounce????, and rotates the angle PI/10 
         if (trigger_motor.move_flag == 0)
         {
             trigger_motor.set_angle = rad_format(trigger_motor.set_angle + PI_Ten);
@@ -485,10 +588,13 @@ static void shoot_ready_control(void)
 
         if (rad_format(trigger_motor.set_angle - trigger_motor.angle) > 0.05f)
         {
-            //½Ç¶È´ïµ½ÅÐ¶Ï
+            //è§’åº¦è¾¾åˆ°åˆ¤æ–­
+						//Determine angle
             trigger_motor.speed_set = Ready_Trigger_Speed;
             trigger_motor.run_time = xTaskGetTickCount();
-            //¶Â×ªÅÐ¶Ï
+					
+            //å µè½¬åˆ¤æ–­
+						//Determine stall
             if (trigger_motor.run_time - trigger_motor.cmd_time > BLOCK_TIME && trigger_motor.run_time - trigger_motor.cmd_time < REVERSE_TIME + BLOCK_TIME && fabs(trigger_motor.speed) < REVERSE_SPEED_LIMIT)
             {
                 trigger_motor.speed_set = -Ready_Trigger_Speed;

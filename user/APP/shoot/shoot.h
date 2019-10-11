@@ -1,19 +1,27 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       shoot.c/h
-  * @brief      Éä»÷¹¦ÄÜ£¬ÆäÖĞÉä»÷µÄ³õÊ¼»¯£¬ÒÔ¼°Ñ­»·¶¼ÊÇÔÚÔÆÌ¨ÈÎÎñÖĞµ÷ÓÃ£¬¹Ê¶ø´ËÎÄ¼ş
-  *             ²»ÊÇfreeRTOSÈÎÎñ£¬Éä»÷·Ö¹Ø±Õ×´Ì¬£¬×¼±¸×´Ì¬£¬Éä»÷×´Ì¬£¬ÒÔ¼°Íê³É×´Ì¬
-  *             ¹Ø±Õ×´Ì¬ÊÇ¹Ø±ÕÄ¦²ÁÂÖÒÔ¼°¼¤¹â£¬×¼±¸×´Ì¬ÊÇ½«×Óµ¯²¦µ½Î¢ĞÍ¿ª¹Ø´¦£¬Éä»÷×´
-  *             Ì¬ÊÇ½«×Óµ¯Éä³ö£¬ÅĞ¶ÏÎ¢ĞÍ¿ª¹ØÖµ£¬½øÈëÍê³É×´Ì¬£¬Íê³É×´Ì¬Í¨¹ıÅĞ¶ÏÒ»¶¨Ê±¼ä
-  *             Î¢ĞÍ¿ª¹ØÎŞ×Óµ¯ÈÏÎªÒÑ¾­½«×Óµ¯Éä³ö¡£
+  * @brief      å°„å‡»åŠŸèƒ½ï¼Œå…¶ä¸­å°„å‡»çš„åˆå§‹åŒ–ï¼Œä»¥åŠå¾ªç¯éƒ½æ˜¯åœ¨äº‘å°ä»»åŠ¡ä¸­è°ƒç”¨ï¼Œæ•…è€Œæ­¤æ–‡ä»¶
+  *             ä¸æ˜¯freeRTOSä»»åŠ¡ï¼Œå°„å‡»åˆ†å…³é—­çŠ¶æ€ï¼Œå‡†å¤‡çŠ¶æ€ï¼Œå°„å‡»çŠ¶æ€ï¼Œä»¥åŠå®ŒæˆçŠ¶æ€
+  *             å…³é—­çŠ¶æ€æ˜¯å…³é—­æ‘©æ“¦è½®ä»¥åŠæ¿€å…‰ï¼Œå‡†å¤‡çŠ¶æ€æ˜¯å°†å­å¼¹æ‹¨åˆ°å¾®å‹å¼€å…³å¤„ï¼Œå°„å‡»çŠ¶
+  *             æ€æ˜¯å°†å­å¼¹å°„å‡ºï¼Œåˆ¤æ–­å¾®å‹å¼€å…³å€¼ï¼Œè¿›å…¥å®ŒæˆçŠ¶æ€ï¼Œå®ŒæˆçŠ¶æ€é€šè¿‡åˆ¤æ–­ä¸€å®šæ—¶é—´
+  *             å¾®å‹å¼€å…³æ— å­å¼¹è®¤ä¸ºå·²ç»å°†å­å¼¹å°„å‡ºã€‚
+	* 
+	* @english 		Shooting functions are all called in the gimbal_task. The file is
+	*							not freeRTOS task. Shooting has four modes, Off Mode, Ready Mode, 
+	*							Shoot Mode, Finished Mode. Off Mode is turning off laser and flywheel
+	*							Ready Mode is to load the bullet into the gun. Shoot Mode is to shoot 
+	*							the bullet and determine the value of the microswitch. Finished mode 
+	*							determine if the bullet is shot out using the microswitch, there will 
+	*							be a delay time after.
+	*
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É
+  *  V1.0.0     Dec-26-2018     RM              1. å®Œæˆ
   *
   @verbatim
   ==============================================================================
-
   ==============================================================================
   @endverbatim
   ****************************(C) COPYRIGHT 2016 DJI****************************
@@ -26,35 +34,53 @@
 #include "remote_control.h"
 #include "user_lib.h"
 #include "Gimbal_Task.h"
-//Éä»÷·¢Éä¿ª¹ØÍ¨µÀÊı¾İ
+
+//å°„å‡»å‘å°„å¼€å…³é€šé“æ•°æ®
+//Shoot RC Channel
 #define Shoot_RC_Channel    1
-//ÔÆÌ¨Ä£Ê½Ê¹ÓÃµÄ¿ª¹ØÍ¨µÀ
+
+//äº‘å°æ¨¡å¼ä½¿ç”¨çš„å¼€å…³é€šé“
+//Gimbal Mode Channel
 #define GIMBAL_ModeChannel  1
 
 #define SHOOT_CONTROL_TIME  GIMBAL_CONTROL_TIME
 
 #define SHOOT_FRIC_PWM_ADD_VALUE    100.0f
 
-//Éä»÷Ä¦²ÁÂÖ¼¤¹â´ò¿ª ¹Ø±Õ
+//å°„å‡»æ‘©æ“¦è½®æ¿€å…‰æ‰“å¼€ å…³é—­
+//Q turns on laser and flywheel, E turns off
 #define SHOOT_ON_KEYBOARD KEY_PRESSED_OFFSET_Q
 #define SHOOT_OFF_KEYBOARD KEY_PRESSED_OFFSET_E
 
-//Éä»÷Íê³Éºó ×Óµ¯µ¯³öÈ¥ºó£¬ÅĞ¶ÏÊ±¼ä£¬ÒÔ·ÀÎó´¥·¢
+//å°„å‡»å®Œæˆå å­å¼¹å¼¹å‡ºå»åï¼Œåˆ¤æ–­æ—¶é—´ï¼Œä»¥é˜²è¯¯è§¦å‘
+//In the Finished Mode this is the delay
 #define SHOOT_DONE_KEY_OFF_TIME 10
-//Êó±ê³¤°´ÅĞ¶Ï
+
+//é¼ æ ‡é•¿æŒ‰åˆ¤æ–­
+//How long mouse must be held down to switch to auto mode
 #define PRESS_LONG_TIME 400
-//Ò£¿ØÆ÷Éä»÷¿ª¹Ø´òÏÂµµÒ»¶ÎÊ±¼äºó Á¬Ğø·¢Éä×Óµ¯ ÓÃÓÚÇåµ¥
+
+//é¥æ§å™¨å°„å‡»å¼€å…³æ‰“ä¸‹æ¡£ä¸€æ®µæ—¶é—´å è¿ç»­å‘å°„å­å¼¹ ç”¨äºæ¸…å•
+//How long RC button must be held down to switch to auto mode
 #define RC_S_LONG_TIME 2000
-//Ä¦²ÁÂÖ¸ßËÙ ¼ÓËÙ Ê±¼ä
+
+//æ‘©æ“¦è½®é«˜é€Ÿ åŠ é€Ÿ æ—¶é—´
+//Acceleration time
 #define UP_ADD_TIME 80
-//µç»ú·´À¡ÂëÅÌÖµ·¶Î§
+
+//ç”µæœºåé¦ˆç ç›˜å€¼èŒƒå›´
+//Motor angle range maximum and median (center)
 #define Half_ecd_range 4096
 #define ecd_range 8191
-//µç»úrmp ±ä»¯³É Ğı×ªËÙ¶ÈµÄ±ÈÀı
+
+//ç”µæœºrmp å˜åŒ–æˆ æ—‹è½¬é€Ÿåº¦çš„æ¯”ä¾‹
+//RMP to Speed, ECD to Angle
 #define Motor_RMP_TO_SPEED 0.00290888208665721596153948461415f
 #define Motor_ECD_TO_ANGLE 0.000021305288720633905968306772076277f
 #define FULL_COUNT 18
-//²¦µ¯ËÙ¶È
+
+//æ‹¨å¼¹é€Ÿåº¦
+//The trigger Speed
 #define TRIGGER_SPEED 10.0f
 #define Ready_Trigger_Speed 6.0f
 
@@ -62,7 +88,8 @@
 #define SWITCH_TRIGGER_ON 0
 #define SWITCH_TRIGGER_OFF 1
 
-//¿¨µ¥Ê±¼ä ÒÔ¼°·´×ªÊ±¼ä
+//å¡å•æ—¶é—´ ä»¥åŠåè½¬æ—¶é—´
+//If a blockage occurs, determine if blocked using BLOCK_TIME, set motor backwards for REVERSE_TIME
 #define BLOCK_TIME 700
 #define REVERSE_TIME 500
 #define REVERSE_SPEED_LIMIT 13.0f
@@ -70,7 +97,8 @@
 #define PI_Four 0.78539816339744830961566084581988f
 #define PI_Ten 0.314f
 
-//²¦µ¯ÂÖµç»úPID
+//æ‹¨å¼¹è½®ç”µæœºPID
+//Trigger PID
 #define TRIGGER_ANGLE_PID_KP 800.0f
 #define TRIGGER_ANGLE_PID_KI 0.5f
 #define TRIGGER_ANGLE_PID_KD 0.0f
@@ -121,7 +149,8 @@ typedef enum
     SHOOT_DONE,
 } shoot_mode_e;
 
-//ÓÉÓÚÉä»÷ºÍÔÆÌ¨Ê¹ÓÃÍ¬Ò»¸öcanµÄid¹ÊÒ²Éä»÷ÈÎÎñÔÚÔÆÌ¨ÈÎÎñÖĞÖ´ĞĞ
+//ç”±äºå°„å‡»å’Œäº‘å°ä½¿ç”¨åŒä¸€ä¸ªcançš„idæ•…ä¹Ÿå°„å‡»ä»»åŠ¡åœ¨äº‘å°ä»»åŠ¡ä¸­æ‰§è¡Œ
+//As the Gimbal and Shooting mechanism use the same CAN, the init function will be run in gimbal_task
 extern void shoot_init(void);
 extern int16_t shoot_control_loop(void);
 
