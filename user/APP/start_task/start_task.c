@@ -2,10 +2,12 @@
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       start_task.c/h
   * @brief      启动任务，将一个个任务开启，分配资源，给定任务优先级,
+  *             Start tasks.
+  *             Start tasks one by one. Allocate resources and allocate priority levels.
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. 完成
+  *  V1.0.0     Dec-26-2018     RM              1. 完成    completion
   *
   @verbatim
   ==============================================================================
@@ -102,16 +104,16 @@ void start_task(void *pvParameters)
                 (UBaseType_t)Detect_TASK_PRIO,
                 (TaskHandle_t *)&DetectTask_Handler);
 
-    vTaskDelete(StartTask_Handler); //删除开始任务
-    taskEXIT_CRITICAL();            //退出临界区
+    vTaskDelete(StartTask_Handler); //删除开始任务    delete initialization task
+    taskEXIT_CRITICAL();            //退出临界区    exit the threshold area
 }
 
 void startTast(void)
 {
-    xTaskCreate((TaskFunction_t)start_task,          //任务函数
-                (const char *)"start_task",          //任务名称
-                (uint16_t)START_STK_SIZE,            //任务堆栈大小
-                (void *)NULL,                        //传递给任务函数的参数
-                (UBaseType_t)START_TASK_PRIO,        //任务优先级
-                (TaskHandle_t *)&StartTask_Handler); //任务句柄
+    xTaskCreate((TaskFunction_t)start_task,          //任务函数    task function
+                (const char *)"start_task",          //任务名称    task name
+                (uint16_t)START_STK_SIZE,            //任务堆栈大小    task stack size
+                (void *)NULL,                        //传递给任务函数的参数 parameters that are to be passed to task functions
+                (UBaseType_t)START_TASK_PRIO,        //任务优先级    task priority level
+                (TaskHandle_t *)&StartTask_Handler); //任务句柄    task handler
 }
