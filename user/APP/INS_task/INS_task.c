@@ -273,7 +273,7 @@ void INSTask(void *pvParameters)
                 AHRS_init(INS_quat, INS_accel, INS_mag); // update AHRS with quaternion to store accel and magnetometer values
                 get_angle(INS_quat, INS_Angle, INS_Angle + 1, INS_Angle + 2); // update quateronion with angle from get_angle()
 
-                accel_fli ter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0]; // initialize filer values with accelerometer values
+                accel_fliter_1[0] = accel_fliter_2[0] = accel_fliter_3[0] = INS_accel[0]; // initialize filer values with accelerometer values
                 accel_fliter_1[1] = accel_fliter_2[1] = accel_fliter_3[1] = INS_accel[1];
                 accel_fliter_1[2] = accel_fliter_2[2] = accel_fliter_3[2] = INS_accel[2];
                 updata_count++;

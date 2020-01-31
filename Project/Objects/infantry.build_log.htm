@@ -1,0 +1,70 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: µVision V5.28.0.0
+Copyright (C) 2019 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: Sid Prabhakaran, Texas A&M Robomasters, LIC=HF8UH-WYWWS-5A1DF-6RG5L-9XMR8-Y6UFJ
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Professional  Version: 5.28.0.0
+Toolchain Path:  C:\Keil_v5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.06 update 6 (build 750)
+Assembler:       Armasm.exe V5.06 update 6 (build 750)
+Linker/Locator:  ArmLink.exe V5.06 update 6 (build 750)
+Library Manager: ArmAr.exe V5.06 update 6 (build 750)
+Hex Converter:   FromElf.exe V5.06 update 6 (build 750)
+CPU DLL:         SARMCM3.DLL V5.28.0.0
+Dialog DLL:      DCM.DLL V1.17.3.0
+Target DLL:      Segger\JL2CM3.dll V2.99.36.0
+Dialog DLL:      TCM.DLL V1.36.2.0
+ 
+<h2>Project:</h2>
+D:\Git Repos\Robomaster20192020\Project\standard.uvprojx
+Project File Date:  01/31/2020
+
+<h2>Output:</h2>
+*** Using Compiler 'V5.06 update 6 (build 750)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Build target 'standard'
+compiling start_task.c...
+..\User\APP\Gimbal_Task\Gimbal_Task.h(271): warning:  #1-D: last line of file ends without a newline
+  #endif
+..\user\APP\start_task\start_task.c: 1 warning, 0 errors
+compiling chassis_behaviour.c...
+..\User\APP\Gimbal_Task\Gimbal_Task.h(271): warning:  #1-D: last line of file ends without a newline
+  #endif
+..\user\APP\chassis_task\chassis_behaviour.h(43): warning:  #1-D: last line of file ends without a newline
+  #endif
+..\user\APP\chassis_task\chassis_behaviour.c: 2 warnings, 0 errors
+compiling chassis_task.c...
+..\User\APP\Gimbal_Task\Gimbal_Task.h(271): warning:  #1-D: last line of file ends without a newline
+  #endif
+..\user\APP\chassis_task\chassis_behaviour.h(43): warning:  #1-D: last line of file ends without a newline
+  #endif
+..\user\APP\chassis_task\chassis_task.c(443): warning:  #177-D: variable "yaw"  was declared but never referenced
+      float yaw = chassis_move_update->chassis_yaw;
+..\user\APP\chassis_task\chassis_task.c(428): warning:  #177-D: function "chassis_vector_to_mecanum_wheel_speed"  was declared but never referenced
+  static void chassis_vector_to_mecanum_wheel_speed(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, fp32 wheel_speed[4])
+..\user\APP\chassis_task\chassis_task.c: 4 warnings, 0 errors
+linking...
+Program Size: Code=49424 RO-data=2772 RW-data=568 ZI-data=135264  
+FromELF: creating hex file...
+".\Objects\infantry.axf" - 0 Error(s), 7 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: Keil
+                http://www.keil.com/pack/Keil.STM32F4xx_DFP.2.14.0.pack
+                Keil.STM32F4xx_DFP.2.14.0
+                STMicroelectronics STM32F4 Series Device Support, Drivers and Examples
+
+<h2>Collection of Component include folders:</h2>
+  .\RTE\_standard
+  C:\Users\s2sid\AppData\Local\Arm\Packs\Keil\STM32F4xx_DFP\2.14.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include
+
+<h2>Collection of Component Files used:</h2>
+Build Time Elapsed:  00:00:02
+</pre>
+</body>
+</html>
