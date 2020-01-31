@@ -882,6 +882,16 @@
               <FileType>1</FileType>
               <FilePath>..\user\APP\user_task\user_task.c</FilePath>
             </File>
+            <File>
+              <FileName>chassis_behaviour.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\user\APP\chassis_task\chassis_behaviour.h</FilePath>
+            </File>
+            <File>
+              <FileName>chassis_task.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\user\APP\chassis_task\chassis_task.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  ****************************(C) COPYRIGHT 2016 DJI****************************
  * @file       chassis.c/h
  * @brief      完成底盘控制任务。
@@ -228,6 +228,7 @@ typedef struct
 
 extern void chassis_task(void *pvParameters);
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
+extern void custom_chassis_control(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, chassis_move_t *chassis_move_update, fp32 wheel_speed[4]);
 
 
 #endif
