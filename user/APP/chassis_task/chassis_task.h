@@ -26,7 +26,6 @@
 //Time before the program start to work
 #define CHASSIS_TASK_INIT_TIME 357
 
-
 //前后的遥控器通道号码
 //Number of the front and back remote control channel
 #define CHASSIS_X_CHANNEL 1
@@ -36,7 +35,6 @@
 //在特殊模式下，可以通过遥控器控制旋转
 //Use the remote control to rotate under a certain condition
 #define CHASSIS_WZ_CHANNEL 2
-
 
 //选择底盘状态 开关通道号
 //open/close the channel based on the condition of the chassis
@@ -54,21 +52,16 @@
 //the ratio that control the rotational speed of the chassis when the mode is not following the gimbal
 #define CHASSIS_WZ_RC_SEN 0.01f
 
-
 #define CHASSIS_ACCEL_X_NUM 0.1666666667f
 #define CHASSIS_ACCEL_Y_NUM 0.3333333333f
 
-
 #define CHASSIS_RC_DEADLINE 10
-
 
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VX 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_VY 0.25f
 #define MOTOR_SPEED_TO_CHASSIS_SPEED_WZ 0.25f
 
-
 #define MOTOR_DISTANCE_TO_CENTER 0.2f
-
 
 //底盘任务控制间隔 2ms
 //chassis task control period in ms
@@ -92,12 +85,10 @@
 #define CHASSIS_LEFT_KEY KEY_PRESSED_OFFSET_A
 #define CHASSIS_RIGHT_KEY KEY_PRESSED_OFFSET_D
 
-
 //m3508转化成底盘速度(m/s)的比例，做两个宏 是因为可能换电机需要更换比例
 //ratio that control the chassis moving speed of m3508. Two macros were made for switching
 #define M3508_MOTOR_RPM_TO_VECTOR 0.000415809748903494517209f
 #define CHASSIS_MOTOR_RPM_TO_VECTOR_SEN M3508_MOTOR_RPM_TO_VECTOR
-
 
 //底盘电机最大速度
 //maximum speed of chassis motor
@@ -112,14 +103,12 @@
 //Setting the rotation speed for chassis. Four wheels have different ration. 0 is the geomatircal center
 #define CHASSIS_WZ_SET_SCALE 0.1f
 
-
 //摇摆原地不动摇摆最大角度(rad)
 //max rad angle for rotation without drifting
 #define SWING_NO_MOVE_ANGLE 0.7f
 //摇摆过程底盘运动最大角度(rad)
 //max moving angle for rotation
 #define SWING_MOVE_ANGLE 0.31415926535897932384626433832795f
-
 
 //底盘电机速度环PID
 //PID on motor's speed loop
@@ -129,7 +118,6 @@
 #define M3505_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
 #define M3505_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
-
 //底盘旋转跟随PID
 //chassis following gimbal PID
 #define CHASSIS_FOLLOW_GIMBAL_PID_KP 40.0f
@@ -138,97 +126,87 @@
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT 6.0f
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT 0.2f
 
-
 typedef enum
 {
- CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,
- CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,
- CHASSIS_VECTOR_NO_FOLLOW_YAW,
- CHASSIS_VECTOR_RAW,
+    CHASSIS_VECTOR_FOLLOW_GIMBAL_YAW,
+    CHASSIS_VECTOR_FOLLOW_CHASSIS_YAW,
+    CHASSIS_VECTOR_NO_FOLLOW_YAW,
+    CHASSIS_VECTOR_RAW,
 
-
- //  CHASSIS_AUTO,
- //  CHASSIS_FOLLOW_YAW,
- //  CHASSIS_ENCODER,
- //  CHASSIS_NO_ACTION,
- //  CHASSIS_RELAX,
+    //  CHASSIS_AUTO,
+    //  CHASSIS_FOLLOW_YAW,
+    //  CHASSIS_ENCODER,
+    //  CHASSIS_NO_ACTION,
+    //  CHASSIS_RELAX,
 } chassis_mode_e;
 
-
 typedef struct
 {
- const motor_measure_t *chassis_motor_measure;
- fp32 accel;
- fp32 speed;
- fp32 speed_set;
- int16_t give_current;
+    const motor_measure_t *chassis_motor_measure;
+    fp32 accel;
+    fp32 speed;
+    fp32 speed_set;
+    int16_t give_current;
 } Chassis_Motor_t;
 
-
 typedef struct
 {
- const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针
-                                            //chassirs rc pointer
- const Gimbal_Motor_t *chassis_yaw_motor;   //底盘使用到yaw云台电机的相对角度来计算底盘的欧拉角                   //use the relative yaw angle of gimbal motor to calculate the euler angle of chassis
- const Gimbal_Motor_t *chassis_pitch_motor; //底盘使用到pitch云台电机的相对角度来计算底盘的欧拉角                 //use the relative pitch angle of the gimbal motor to calculate the euler angle of chasis
- const fp32 *chassis_INS_angle;             //获取陀螺仪解算出的欧拉角指针                                       //get the calculated euler angle from gyro
- chassis_mode_e chassis_mode;               //底盘控制状态机
-                                            //chassis status control
- chassis_mode_e last_chassis_mode;          //底盘上次控制状态机
-                                            //chassis status the last time
- Chassis_Motor_t motor_chassis[4];          //底盘电机数据
-                                            //chassis motor data
- PidTypeDef motor_speed_pid[4];             //底盘电机速度pid
-                                            //chassis motor pid
- PidTypeDef chassis_angle_pid;              //底盘跟随角度pid
-                                            //chassis following angle pid
+    const RC_ctrl_t *chassis_RC;               //底盘使用的遥控器指针
+                                               //chassirs rc pointer
+    const Gimbal_Motor_t *chassis_yaw_motor;   //底盘使用到yaw云台电机的相对角度来计算底盘的欧拉角                   //use the relative yaw angle of gimbal motor to calculate the euler angle of chassis
+    const Gimbal_Motor_t *chassis_pitch_motor; //底盘使用到pitch云台电机的相对角度来计算底盘的欧拉角                 //use the relative pitch angle of the gimbal motor to calculate the euler angle of chasis
+    const fp32 *chassis_INS_angle;             //获取陀螺仪解算出的欧拉角指针                                       //get the calculated euler angle from gyro
+    chassis_mode_e chassis_mode;               //底盘控制状态机
+                                               //chassis status control
+    chassis_mode_e last_chassis_mode;          //底盘上次控制状态机
+                                               //chassis status the last time
+    Chassis_Motor_t motor_chassis[4];          //底盘电机数据
+                                               //chassis motor data
+    PidTypeDef motor_speed_pid[4];             //底盘电机速度pid
+                                               //chassis motor pid
+    PidTypeDef chassis_angle_pid;              //底盘跟随角度pid
+                                               //chassis following angle pid
 
+    first_order_filter_type_t chassis_cmd_slow_set_vx;
+    first_order_filter_type_t chassis_cmd_slow_set_vy;
 
- first_order_filter_type_t chassis_cmd_slow_set_vx;
- first_order_filter_type_t chassis_cmd_slow_set_vy;
+    fp32 vx;                         //底盘速度 前进方向 前为正，单位 m/s
+                                     //Chassis speed on straight, forward is positive, unit is m/s
+    fp32 vy;                         //底盘速度 左右方向 左为正  单位 m/s
+                                     //Chassis speed for moving left and right, left is positive, unit is m/s
+    fp32 wz;                         //底盘旋转角速度，逆时针为正 单位 rad/s
+                                     //Chassis speed for rotating, counter-clockwise is positive, unit is rad/s
+    fp32 vx_set;                     //底盘设定速度 前进方向 前为正，单位 m/s
+                                     //set speed for chassis on straight, forward is positive, unit is m/s
+    fp32 vy_set;                     //底盘设定速度 左右方向 左为正，单位 m/s
+                                     //set chassis speed for left and right, left is positive, unit is m/s
+    fp32 wz_set;                     //底盘设定旋转角速度，逆时针为正 单位 rad/s
+                                     //set chassis rotation speed, counter-clockwise is positive, unit is rad/s
+    fp32 chassis_relative_angle;     //底盘与云台的相对角度，单位 rad/s
+                                     //relative angle of the chassis and the gimbal, unit is rad/s
+    fp32 chassis_relative_angle_set; //设置相对云台控制角度
+                                     //set the relative angle between chassis and gimbal
+    fp32 chassis_yaw_set;
 
-
- fp32 vx;                         //底盘速度 前进方向 前为正，单位 m/s
-                                  //Chassis speed on straight, forward is positive, unit is m/s
- fp32 vy;                         //底盘速度 左右方向 左为正  单位 m/s
-                                                //Chassis speed for moving left and right, left is positive, unit is m/s
- fp32 wz;                         //底盘旋转角速度，逆时针为正 单位 rad/s
-                                                //Chassis speed for rotating, counter-clockwise is positive, unit is rad/s
- fp32 vx_set;                     //底盘设定速度 前进方向 前为正，单位 m/s
-                                  //set speed for chassis on straight, forward is positive, unit is m/s
- fp32 vy_set;                     //底盘设定速度 左右方向 左为正，单位 m/s
-                                  //set chassis speed for left and right, left is positive, unit is m/s
- fp32 wz_set;                     //底盘设定旋转角速度，逆时针为正 单位 rad/s
-                                  //set chassis rotation speed, counter-clockwise is positive, unit is rad/s
- fp32 chassis_relative_angle;     //底盘与云台的相对角度，单位 rad/s
-                                  //relative angle of the chassis and the gimbal, unit is rad/s
- fp32 chassis_relative_angle_set; //设置相对云台控制角度
-                                  //set the relative angle between chassis and gimbal
- fp32 chassis_yaw_set;
-
-
- fp32 vx_max_speed;  //前进方向最大速度 单位m/s
-                     //maximum speed on straight, unit is m/s
- fp32 vx_min_speed;  //前进方向最小速度 单位m/s
-                     //minimum speed on straight, unit is m/s
- fp32 vy_max_speed;  //左右方向最大速度 单位m/s
-                     //maximum speed on left and right, unit is m/s
- fp32 vy_min_speed;  //左右方向最小速度 单位m/s
-                     //minimum speed on left and right, unit is m/s
- fp32 chassis_yaw;   //陀螺仪和云台电机叠加的yaw角度
-                     //yaw angle by the gyro and the gimbal motor
- fp32 chassis_pitch; //陀螺仪和云台电机叠加的pitch角度
-                     //pitch angle by the gyro and the gimbal motor 
- fp32 chassis_roll;  //陀螺仪和云台电机叠加的roll角度
-                     //roll angle by the gyro and the gimbal motor
-
+    fp32 vx_max_speed;  //前进方向最大速度 单位m/s
+                        //maximum speed on straight, unit is m/s
+    fp32 vx_min_speed;  //前进方向最小速度 单位m/s
+                        //minimum speed on straight, unit is m/s
+    fp32 vy_max_speed;  //左右方向最大速度 单位m/s
+                        //maximum speed on left and right, unit is m/s
+    fp32 vy_min_speed;  //左右方向最小速度 单位m/s
+                        //minimum speed on left and right, unit is m/s
+    fp32 chassis_yaw;   //陀螺仪和云台电机叠加的yaw角度
+                        //yaw angle by the gyro and the gimbal motor
+    fp32 chassis_pitch; //陀螺仪和云台电机叠加的pitch角度
+                        //pitch angle by the gyro and the gimbal motor
+    fp32 chassis_roll;  //陀螺仪和云台电机叠加的roll角度
+                        //roll angle by the gyro and the gimbal motor
 
 } chassis_move_t;
 
-
 extern void chassis_task(void *pvParameters);
 extern void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *chassis_move_rc_to_vector);
-extern void custom_chassis_control(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, chassis_move_t *chassis_move_update, fp32 wheel_speed[4]);
-
+extern void tokyo_drift(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, chassis_move_t *chassis_move_update, fp32 wheel_speed[4]);
 
 #endif

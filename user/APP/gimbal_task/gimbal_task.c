@@ -1,10 +1,10 @@
 /**
   ****************************(C) COPYRIGHT 2016 DJI****************************
   * @file       gimbal_task.c/h
-  * @brief      Íê³ÉÔÆÌ¨¿ØÖÆÈÎÎñ£¬ÓÉÓÚÔÆÌ¨Ê¹ÓÃÍÓÂİÒÇ½âËã³öµÄ½Ç¶È£¬Æä·¶Î§ÔÚ£¨-pi,pi£©
-  *             ¹Ê¶øÉèÖÃÄ¿±ê½Ç¶È¾ùÎª·¶Î§£¬´æÔÚĞí¶à¶Ô½Ç¶È¼ÆËãµÄº¯Êı¡£ÔÆÌ¨Ö÷Òª·ÖÎª2ÖÖ
-  *             ×´Ì¬£¬ÍÓÂİÒÇ¿ØÖÆ×´Ì¬ÊÇÀûÓÃ°åÔØÍÓÂİÒÇ½âËãµÄ×ËÌ¬½Ç½øĞĞ¿ØÖÆ£¬±àÂëÆ÷¿ØÖÆ
-  *             ×´Ì¬ÊÇÍ¨¹ıµç»ú·´À¡µÄ±àÂëÖµ¿ØÖÆµÄĞ£×¼£¬´ËÍâ»¹ÓĞĞ£×¼×´Ì¬£¬Í£Ö¹×´Ì¬µÈ¡£
+  * @brief      ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½ï¿½ï¿½ï¿½ï¿½ï¿½Ä½Ç¶È£ï¿½ï¿½ä·¶Î§ï¿½Ú£ï¿½-pi,piï¿½ï¿½
+  *             ï¿½Ê¶ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Ç¶È¾ï¿½Îªï¿½ï¿½Î§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶È¼ï¿½ï¿½ï¿½Äºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½Òªï¿½ï¿½Îª2ï¿½ï¿½
+  *             ×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½Ã°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¬ï¿½Ç½ï¿½ï¿½Ğ¿ï¿½ï¿½Æ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  *             ×´Ì¬ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½Æµï¿½Ğ£×¼ï¿½ï¿½ï¿½ï¿½ï¿½â»¹ï¿½ï¿½Ğ£×¼×´Ì¬ï¿½ï¿½Í£Ö¹×´Ì¬ï¿½È¡ï¿½
   *             Complete tripod control tasks. Due to the fact that the tripod 
   *             uses angle computed from the gyroscope, its range is (-pi, pi).
   *             Hence the set target angles are all ranges. Many functions exist
@@ -16,7 +16,7 @@
   * @note       
   * @history
   *  Version    Date            Author          Modification
-  *  V1.0.0     Dec-26-2018     RM              1. Íê³É complete
+  *  V1.0.0     Dec-26-2018     RM              1. ï¿½ï¿½ï¿½ complete
   *
   @verbatim
   ==============================================================================
@@ -44,7 +44,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-//µç»ú±àÂëÖµ¹æÕû 0¡ª8191
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ 0ï¿½ï¿½8191
 //motor coding value 0-8191
 #define ECD_Format(ecd)         \
     {                           \
@@ -69,37 +69,37 @@
 uint32_t gimbal_high_water;
 #endif
 
-//ÔÆÌ¨¿ØÖÆËùÓĞÏà¹ØÊı¾İ
+//ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //all relavent data for tripod control
 static Gimbal_Control_t gimbal_control;
 
-//·¢ËÍµÄcan Ö¸Áî
+//ï¿½ï¿½ï¿½Íµï¿½can Ö¸ï¿½ï¿½
 //send can command
 static int16_t Yaw_Can_Set_Current = 0, Pitch_Can_Set_Current = 0, Shoot_Can_Set_Current = 0;
 
-//ÔÆÌ¨³õÊ¼»¯
+//ï¿½ï¿½Ì¨ï¿½ï¿½Ê¼ï¿½ï¿½
 //tripod initialization
 static void GIMBAL_Init(Gimbal_Control_t *gimbal_init);
-//ÔÆÌ¨pidÇåÁã
+//ï¿½ï¿½Ì¨pidï¿½ï¿½ï¿½ï¿½
 //tripod pid rest
 static void Gimbal_PID_clear(Gimbal_PID_t *gimbal_pid_clear);
-//ÔÆÌ¨×´Ì¬ÉèÖÃ
+//ï¿½ï¿½Ì¨×´Ì¬ï¿½ï¿½ï¿½ï¿½
 //tripod state set
 static void GIMBAL_Set_Mode(Gimbal_Control_t *gimbal_set_mode);
-//ÔÆÌ¨Êı¾İ¸üĞÂ
+//ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½İ¸ï¿½ï¿½ï¿½
 //tripod data update
 static void GIMBAL_Feedback_Update(Gimbal_Control_t *gimbal_feedback_update);
-//ÔÆÌ¨×´Ì¬ÇĞ»»±£´æÊı¾İ£¬ÀıÈç´ÓÍÓÂİÒÇ×´Ì¬ÇĞ»»µ½±àÂëÆ÷×´Ì¬±£´æÄ¿±êÖµ
+//ï¿½ï¿½Ì¨×´Ì¬ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Öµ
 //save data when tripod state switches
 //for instance, save the target value when the gyroscope state switches to coder state
 static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_change);
-//¼ÆËãÔÆÌ¨µç»úÏà¶ÔÖĞÖµµÄÏà¶Ô½Ç¶È
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½
 //calculate the relative angle of the relative middle value of the tripod motor
 static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd);
-//ÉèÖÃÔÆÌ¨¿ØÖÆÁ¿
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //set the control value for the tripod
-static void GIMBAL_Set_Contorl(Gimbal_Control_t *gimbal_set_control);
-//ÔÆÌ¨¿ØÖÆpid¼ÆËã
+static void GIMBAL_Set_Control(Gimbal_Control_t *gimbal_set_control);
+//ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½
 //tripod pid calculation
 static void GIMBAL_Control_loop(Gimbal_Control_t *gimbal_control_loop);
 
@@ -107,7 +107,7 @@ static void gimbal_motor_absolute_angle_control(Gimbal_Motor_t *gimbal_motor);
 static void gimbal_motor_relative_angle_control(Gimbal_Motor_t *gimbal_motor);
 static void gimbal_motor_raw_angle_control(Gimbal_Motor_t *gimbal_motor);
 
-//ÔÚÍÓÂİÒÇ½Ç¶È¿ØÖÆÏÂ£¬¶Ô¿ØÖÆµÄÄ¿±êÖµ½øÏŞÖÆÒÔ·À³¬×î´óÏà¶Ô½Ç¶È
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½Ç¶È¿ï¿½ï¿½ï¿½ï¿½Â£ï¿½ï¿½Ô¿ï¿½ï¿½Æµï¿½Ä¿ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½
 //restrict the controlled target value to avoid exceeding the maximum relative angle
 //under the control of the gyroscope
 static void GIMBAL_absolute_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add);
@@ -117,38 +117,38 @@ static fp32 GIMBAL_PID_Calc(Gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_de
 
 static void calc_gimbal_cali(const Gimbal_Cali_t *gimbal_cali, uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *max_yaw, fp32 *min_yaw, fp32 *max_pitch, fp32 *min_pitch);
 #if GIMBAL_TEST_MODE
-//j-scope °ïÖúpidµ÷²Î
+//j-scope ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½
 //j-scipe help tune the parameters of the pid
 static void J_scope_gimbal_test(void);
 #endif
 
 void GIMBAL_task(void *pvParameters)
 {
-    //µÈ´ıÍÓÂİÒÇÈÎÎñ¸üĞÂÍÓÂİÒÇÊı¾İ
+    //ï¿½È´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     //wait for the gyroscope task to update gyroscope data
     vTaskDelay(GIMBAL_TASK_INIT_TIME);
-    //ÔÆÌ¨³õÊ¼»¯
+    //ï¿½ï¿½Ì¨ï¿½ï¿½Ê¼ï¿½ï¿½
     //tripod initialization
     GIMBAL_Init(&gimbal_control);
-    //Éä»÷³õÊ¼»¯
+    //ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
     //shoot initializating
     shoot_init();
-    //ÅĞ¶Ïµç»úÊÇ·ñ¶¼ÉÏÏß
+    //ï¿½Ğ¶Ïµï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½
     //check whether all motors are online
     while (toe_is_error(YawGimbalMotorTOE) || toe_is_error(PitchGimbalMotorTOE) || toe_is_error(TriggerMotorTOE) )
     {
         vTaskDelay(GIMBAL_CONTROL_TIME);
-        GIMBAL_Feedback_Update(&gimbal_control);             //ÔÆÌ¨Êı¾İ·´À¡    tripod data feedback
+        GIMBAL_Feedback_Update(&gimbal_control);             //ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½İ·ï¿½ï¿½ï¿½    tripod data feedback
     }
 
     while (1)
     {
-        GIMBAL_Set_Mode(&gimbal_control);                    //ÉèÖÃÔÆÌ¨¿ØÖÆÄ£Ê½    set the control mode of the tripod
-        GIMBAL_Mode_Change_Control_Transit(&gimbal_control); //¿ØÖÆÄ£Ê½ÇĞ»» ¿ØÖÆÊı¾İ¹ı¶É    control mode switch, control the data transition
-        GIMBAL_Feedback_Update(&gimbal_control);             //ÔÆÌ¨Êı¾İ·´À¡    tripod data feedback
-        GIMBAL_Set_Contorl(&gimbal_control);                 //ÉèÖÃÔÆÌ¨¿ØÖÆÁ¿    set the control value for the tripod
-        GIMBAL_Control_loop(&gimbal_control);                //ÔÆÌ¨¿ØÖÆPID¼ÆËã    tripod control PID calculation
-        Shoot_Can_Set_Current = shoot_control_loop();        //Éä»÷ÈÎÎñ¿ØÖÆÑ­»·    loop the shooting task
+        GIMBAL_Set_Mode(&gimbal_control);                    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½Ä£Ê½    set the control mode of the tripod
+        GIMBAL_Mode_Change_Control_Transit(&gimbal_control); //ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½Ğ»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ¹ï¿½ï¿½ï¿½    control mode switch, control the data transition
+        GIMBAL_Feedback_Update(&gimbal_control);             //ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½İ·ï¿½ï¿½ï¿½    tripod data feedback
+        GIMBAL_Set_Control(&gimbal_control);                 //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½    set the control value for the tripod
+        GIMBAL_Control_loop(&gimbal_control);                //ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½PIDï¿½ï¿½ï¿½ï¿½    tripod control PID calculation
+        Shoot_Can_Set_Current = shoot_control_loop();        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½    loop the shooting task
 #if YAW_TURN
         Yaw_Can_Set_Current = -gimbal_control.gimbal_yaw_motor.given_current;
 #else
@@ -161,7 +161,7 @@ void GIMBAL_task(void *pvParameters)
         Pitch_Can_Set_Current = gimbal_control.gimbal_pitch_motor.given_current;
 #endif
 
-        //ÔÆÌ¨ÔÚÒ£¿ØÆ÷µôÏß×´Ì¬¼´relax ×´Ì¬£¬canÖ¸ÁîÎª0£¬²»Ê¹ÓÃcurrentÉèÖÃÎªÁãµÄ·½·¨£¬ÊÇ±£Ö¤Ò£¿ØÆ÷µôÏßÒ»¶¨Ê¹µÃÔÆÌ¨Í£Ö¹
+        //ï¿½ï¿½Ì¨ï¿½ï¿½Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½relax ×´Ì¬ï¿½ï¿½canÖ¸ï¿½ï¿½Îª0ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½currentï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç±ï¿½Ö¤Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½Ì¨Í£Ö¹
         //can command is zero when the tripod is in relax state(remote control offline)
         //do not use the method of setting to zero via current
         //to ensure the tripod stops when the remote control is offline
@@ -191,19 +191,19 @@ void GIMBAL_task(void *pvParameters)
 
 
 /**
-  * @brief          ÔÆÌ¨Ğ£×¼ÉèÖÃ£¬½«Ğ£×¼µÄÔÆÌ¨ÖĞÖµÒÔ¼°×îĞ¡×î´ó»úĞµÏà¶Ô½Ç¶È
+  * @brief          ï¿½ï¿½Ì¨Ğ£×¼ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½Ğ£×¼ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½Öµï¿½Ô¼ï¿½ï¿½ï¿½Ğ¡ï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½Ô½Ç¶ï¿½
   *                 Tripod calibration set
   *                 will caliberate the tripod middle value and the maximum and the minumum value
   *                 of the mechanical relative angle
   * @author         RM
-  * @param[in]      yaw ÖĞÖµ    yaw middle value
-  * @param[in]      pitch ÖĞÖµ    pitch middle value
-  * @param[in]      yaw ×î´óÏà¶Ô½Ç¶È    yaw maximum relative angle
-  * @param[in]      yaw ×îĞ¡Ïà¶Ô½Ç¶È    yaw minimum relative angle
-  * @param[in]      pitch ×î´óÏà¶Ô½Ç¶È    pitch maximum relative angle
-  * @param[in]      pitch ×îĞ¡Ïà¶Ô½Ç¶È    pitch minimum relative angle
-  * @retval         ·µ»Ø¿Õ    return null
-  * @waring         Õâ¸öº¯ÊıÊ¹ÓÃµ½gimbal_control ¾²Ì¬±äÁ¿µ¼ÖÂº¯Êı²»ÊÊÓÃÒÔÉÏÍ¨ÓÃÖ¸Õë¸´ÓÃ
+  * @param[in]      yaw ï¿½ï¿½Öµ    yaw middle value
+  * @param[in]      pitch ï¿½ï¿½Öµ    pitch middle value
+  * @param[in]      yaw ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½    yaw maximum relative angle
+  * @param[in]      yaw ï¿½ï¿½Ğ¡ï¿½ï¿½Ô½Ç¶ï¿½    yaw minimum relative angle
+  * @param[in]      pitch ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½    pitch maximum relative angle
+  * @param[in]      pitch ï¿½ï¿½Ğ¡ï¿½ï¿½Ô½Ç¶ï¿½    pitch minimum relative angle
+  * @retval         ï¿½ï¿½ï¿½Ø¿ï¿½    return null
+  * @waring         ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ãµï¿½gimbal_control ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½Ö¸ï¿½ë¸´ï¿½ï¿½
   *                 The function uses gimbal_control
   *                 static variable makes the function not suitable for the above generic pointer reusing
   */
@@ -220,22 +220,22 @@ void set_cali_gimbal_hook(const uint16_t yaw_offset, const uint16_t pitch_offset
 
 
 /**
-  * @brief          ÔÆÌ¨Ğ£×¼¼ÆËã£¬½«Ğ£×¼¼ÇÂ¼µÄ×î´ó ×îĞ¡Öµ À´¼ÆËãÔÆÌ¨ ÖĞÖµºÍ×î´ó×îĞ¡»úĞµ½Ç¶È
+  * @brief          ï¿½ï¿½Ì¨Ğ£×¼ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½Ğ£×¼ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ğ¡Öµ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¡ï¿½ï¿½Ğµï¿½Ç¶ï¿½
   *                 Tripod calibration calculation
   *                 will caliberate the recorded maximum, minimum values
   *                 for calculating the middle, the maximum and the minimum values of the
   *                 the mechanical angles of the tripod
   * @author         RM
-  * @param[in]      yaw ÖĞÖµ Ö¸Õë    yaw middle value pointer
-  * @param[in]      pitch ÖĞÖµ Ö¸Õë    pitch middle value pointer
-  * @param[in]      yaw ×î´óÏà¶Ô½Ç¶È Ö¸Õë    yaw maximum relative angle pointer
-  * @param[in]      yaw ×îĞ¡Ïà¶Ô½Ç¶È Ö¸Õë    yaw minimum relative angle pointer
-  * @param[in]      pitch ×î´óÏà¶Ô½Ç¶È Ö¸Õë    pitch maximum relative angle pointer
-  * @param[in]      pitch ×îĞ¡Ïà¶Ô½Ç¶È Ö¸Õë    pitch minimum relative angle pointer
-  * @retval         ·µ»Ø1 ´ú±í³É¹¦Ğ£×¼Íê±Ï£¬ ·µ»Ø0 ´ú±íÎ´Ğ£×¼Íê    
+  * @param[in]      yaw ï¿½ï¿½Öµ Ö¸ï¿½ï¿½    yaw middle value pointer
+  * @param[in]      pitch ï¿½ï¿½Öµ Ö¸ï¿½ï¿½    pitch middle value pointer
+  * @param[in]      yaw ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½ Ö¸ï¿½ï¿½    yaw maximum relative angle pointer
+  * @param[in]      yaw ï¿½ï¿½Ğ¡ï¿½ï¿½Ô½Ç¶ï¿½ Ö¸ï¿½ï¿½    yaw minimum relative angle pointer
+  * @param[in]      pitch ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½ Ö¸ï¿½ï¿½    pitch maximum relative angle pointer
+  * @param[in]      pitch ï¿½ï¿½Ğ¡ï¿½ï¿½Ô½Ç¶ï¿½ Ö¸ï¿½ï¿½    pitch minimum relative angle pointer
+  * @retval         ï¿½ï¿½ï¿½ï¿½1 ï¿½ï¿½ï¿½ï¿½ï¿½É¹ï¿½Ğ£×¼ï¿½ï¿½Ï£ï¿½ ï¿½ï¿½ï¿½ï¿½0 ï¿½ï¿½ï¿½ï¿½Î´Ğ£×¼ï¿½ï¿½    
   *                 return 1: calibration finishes successfully
   *                 return 0: calibration not finished
-  * @waring         Õâ¸öº¯ÊıÊ¹ÓÃµ½gimbal_control ¾²Ì¬±äÁ¿µ¼ÖÂº¯Êı²»ÊÊÓÃÒÔÉÏÍ¨ÓÃÖ¸Õë¸´ÓÃ
+  * @waring         ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ãµï¿½gimbal_control ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½Ö¸ï¿½ë¸´ï¿½ï¿½
   *                 The function uses gimbal_control
   *                 Static variable makes the function not suitable for the reuse of the above generic pointers
   */
@@ -244,7 +244,7 @@ bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *
     if (gimbal_control.gimbal_cali.step == 0)
     {
         gimbal_control.gimbal_cali.step = GIMBAL_CALI_START_STEP;
-        //±£´æ½øÈëÊ±ºòµÄÊı¾İ£¬×÷ÎªÆğÊ¼Êı¾İ£¬À´ÅĞ¶Ï×î´ó£¬×îĞ¡Öµ
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ£ï¿½ï¿½ï¿½Îªï¿½ï¿½Ê¼ï¿½ï¿½ï¿½İ£ï¿½ï¿½ï¿½ï¿½Ğ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¡Öµ
         //save the data when entering
         //as the initial data
         //to determine the maximum and the minimum values
@@ -276,7 +276,7 @@ bool_t cmd_cali_gimbal_hook(uint16_t *yaw_offset, uint16_t *pitch_offset, fp32 *
     }
 }
 
-//Ğ£×¼¼ÆËã£¬Ïà¶Ô×î´ó½Ç¶È£¬ÔÆÌ¨ÖĞÖµ
+//Ğ£×¼ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶È£ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½Öµ
 //calibration calculation
 //relative maximum angle
 //middle value of the tripod
@@ -396,40 +396,40 @@ const Gimbal_Motor_t *get_pitch_motor_point(void)
     return &gimbal_control.gimbal_pitch_motor;
 }
 
-//³õÊ¼»¯pid Êı¾İÖ¸Õë
+//ï¿½ï¿½Ê¼ï¿½ï¿½pid ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
 //initialize pid data pointer
 static void GIMBAL_Init(Gimbal_Control_t *gimbal_init)
 {
 
     static const fp32 Pitch_speed_pid[3] = {PITCH_SPEED_PID_KP, PITCH_SPEED_PID_KI, PITCH_SPEED_PID_KD};
     static const fp32 Yaw_speed_pid[3] = {YAW_SPEED_PID_KP, YAW_SPEED_PID_KI, YAW_SPEED_PID_KD};
-    //µç»úÊı¾İÖ¸Õë»ñÈ¡
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½È¡
     //acquire the motor data pointer
     gimbal_init->gimbal_yaw_motor.gimbal_motor_measure = get_Yaw_Gimbal_Motor_Measure_Point();
     gimbal_init->gimbal_pitch_motor.gimbal_motor_measure = get_Pitch_Gimbal_Motor_Measure_Point();
-    //ÍÓÂİÒÇÊı¾İÖ¸Õë»ñÈ¡
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½È¡
     //acquire the gyroscope data pointer
     gimbal_init->gimbal_INT_angle_point = get_INS_angle_point();
     gimbal_init->gimbal_INT_gyro_point = get_MPU6500_Gyro_Data_Point();
-    //Ò£¿ØÆ÷Êı¾İÖ¸Õë»ñÈ¡
+    //Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½È¡
     //acquire the remote control data pointer
     gimbal_init->gimbal_rc_ctrl = get_remote_control_point();
-    //³õÊ¼»¯µç»úÄ£Ê½
+    //ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½
     //motor initializing mode
     gimbal_init->gimbal_yaw_motor.gimbal_motor_mode = gimbal_init->gimbal_yaw_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
     gimbal_init->gimbal_pitch_motor.gimbal_motor_mode = gimbal_init->gimbal_pitch_motor.last_gimbal_motor_mode = GIMBAL_MOTOR_RAW;
-    //³õÊ¼»¯yawµç»úpid
+    //ï¿½ï¿½Ê¼ï¿½ï¿½yawï¿½ï¿½ï¿½pid
     //initialize yaw motor pid
     GIMBAL_PID_Init(&gimbal_init->gimbal_yaw_motor.gimbal_motor_absolute_angle_pid, YAW_GYRO_ABSOLUTE_PID_MAX_OUT, YAW_GYRO_ABSOLUTE_PID_MAX_IOUT, YAW_GYRO_ABSOLUTE_PID_KP, YAW_GYRO_ABSOLUTE_PID_KI, YAW_GYRO_ABSOLUTE_PID_KD);
     GIMBAL_PID_Init(&gimbal_init->gimbal_yaw_motor.gimbal_motor_relative_angle_pid, YAW_ENCODE_RELATIVE_PID_MAX_OUT, YAW_ENCODE_RELATIVE_PID_MAX_IOUT, YAW_ENCODE_RELATIVE_PID_KP, YAW_ENCODE_RELATIVE_PID_KI, YAW_ENCODE_RELATIVE_PID_KD);
     PID_Init(&gimbal_init->gimbal_yaw_motor.gimbal_motor_gyro_pid, PID_POSITION, Yaw_speed_pid, YAW_SPEED_PID_MAX_OUT, YAW_SPEED_PID_MAX_IOUT);
-    //³õÊ¼»¯pitchµç»úpid
+    //ï¿½ï¿½Ê¼ï¿½ï¿½pitchï¿½ï¿½ï¿½pid
     //initialize pitch motor pid
     GIMBAL_PID_Init(&gimbal_init->gimbal_pitch_motor.gimbal_motor_absolute_angle_pid, PITCH_GYRO_ABSOLUTE_PID_MAX_OUT, PITCH_GYRO_ABSOLUTE_PID_MAX_IOUT, PITCH_GYRO_ABSOLUTE_PID_KP, PITCH_GYRO_ABSOLUTE_PID_KI, PITCH_GYRO_ABSOLUTE_PID_KD);
     GIMBAL_PID_Init(&gimbal_init->gimbal_pitch_motor.gimbal_motor_relative_angle_pid, PITCH_ENCODE_RELATIVE_PID_MAX_OUT, PITCH_ENCODE_RELATIVE_PID_MAX_IOUT, PITCH_ENCODE_RELATIVE_PID_KP, PITCH_ENCODE_RELATIVE_PID_KI, PITCH_ENCODE_RELATIVE_PID_KD);
     PID_Init(&gimbal_init->gimbal_pitch_motor.gimbal_motor_gyro_pid, PID_POSITION, Pitch_speed_pid, PITCH_SPEED_PID_MAX_OUT, PITCH_SPEED_PID_MAX_IOUT);
 
-    //Çå³ıËùÓĞPID
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PID
     //clear all PID
     gimbal_total_pid_clear(gimbal_init);
 
@@ -462,7 +462,7 @@ static void GIMBAL_Feedback_Update(Gimbal_Control_t *gimbal_feedback_update)
     {
         return;
     }
-    //ÔÆÌ¨Êı¾İ¸üĞÂ
+    //ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½İ¸ï¿½ï¿½ï¿½
     //tripod data update
     gimbal_feedback_update->gimbal_pitch_motor.absolute_angle = *(gimbal_feedback_update->gimbal_INT_angle_point + INS_PITCH_ADDRESS_OFFSET);
     gimbal_feedback_update->gimbal_pitch_motor.relative_angle = motor_ecd_to_angle_change(gimbal_feedback_update->gimbal_pitch_motor.gimbal_motor_measure->ecd,
@@ -476,7 +476,7 @@ static void GIMBAL_Feedback_Update(Gimbal_Control_t *gimbal_feedback_update)
     gimbal_feedback_update->gimbal_yaw_motor.motor_gyro = arm_cos_f32(gimbal_feedback_update->gimbal_pitch_motor.relative_angle) * (*(gimbal_feedback_update->gimbal_INT_gyro_point + INS_GYRO_Z_ADDRESS_OFFSET))
                                                         - arm_sin_f32(gimbal_feedback_update->gimbal_pitch_motor.relative_angle) * (*(gimbal_feedback_update->gimbal_INT_gyro_point + INS_GYRO_X_ADDRESS_OFFSET));
 }
-//¼ÆËãÏà¶Ô½Ç¶È
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô½Ç¶ï¿½
 //calculate relative angle
 static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
 {
@@ -493,7 +493,7 @@ static fp32 motor_ecd_to_angle_change(uint16_t ecd, uint16_t offset_ecd)
     return relative_ecd * Motor_Ecd_to_Rad;
 }
 
-//ÔÆÌ¨×´Ì¬ÇĞ»»±£´æ£¬ÓÃÓÚ×´Ì¬ÇĞ»»¹ı¶É
+//ï¿½ï¿½Ì¨×´Ì¬ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½æ£¬ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½ï¿½
 //save the tripod state switch, for state switch transition
 static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_change)
 {
@@ -501,7 +501,7 @@ static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_cha
     {
         return;
     }
-    //yawµç»ú×´Ì¬»úÇĞ»»±£´æÊı¾İ
+    //yawï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     //save the data of yaw motor state switch
     if (gimbal_mode_change->gimbal_yaw_motor.last_gimbal_motor_mode != GIMBAL_MOTOR_RAW && gimbal_mode_change->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
@@ -517,7 +517,7 @@ static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_cha
     }
     gimbal_mode_change->gimbal_yaw_motor.last_gimbal_motor_mode = gimbal_mode_change->gimbal_yaw_motor.gimbal_motor_mode;
 
-    //pitchµç»ú×´Ì¬»úÇĞ»»±£´æÊı¾İ
+    //pitchï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     //save the data of pitch motor state switch
     if (gimbal_mode_change->gimbal_pitch_motor.last_gimbal_motor_mode != GIMBAL_MOTOR_RAW && gimbal_mode_change->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
@@ -535,9 +535,9 @@ static void GIMBAL_Mode_Change_Control_Transit(Gimbal_Control_t *gimbal_mode_cha
     gimbal_mode_change->gimbal_pitch_motor.last_gimbal_motor_mode = gimbal_mode_change->gimbal_pitch_motor.gimbal_motor_mode;
 }
 
-//ÔÆÌ¨¿ØÖÆÁ¿ÉèÖÃ
+//ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //set the control value of the tripod
-static void GIMBAL_Set_Contorl(Gimbal_Control_t *gimbal_set_control)
+static void GIMBAL_Set_Control(Gimbal_Control_t *gimbal_set_control)
 {
     if (gimbal_set_control == NULL)
     {
@@ -548,49 +548,49 @@ static void GIMBAL_Set_Contorl(Gimbal_Control_t *gimbal_set_control)
     fp32 add_pitch_angle = 0.0f;
 
     gimbal_behaviour_control_set(&add_yaw_angle, &add_pitch_angle, gimbal_set_control);
-    //yawµç»úÄ£Ê½¿ØÖÆ
+    //yawï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½
     //yaw motor mode control
     if (gimbal_set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
-        //rawÄ£Ê½ÏÂ£¬Ö±½Ó·¢ËÍ¿ØÖÆÖµ
+        //rawÄ£Ê½ï¿½Â£ï¿½Ö±ï¿½Ó·ï¿½ï¿½Í¿ï¿½ï¿½ï¿½Öµ
         //send the control value directly under raw mode
         gimbal_set_control->gimbal_yaw_motor.raw_cmd_current = add_yaw_angle;
     }
     else if (gimbal_set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
-        //gyroÄ£Ê½ÏÂ£¬ÍÓÂİÒÇ½Ç¶È¿ØÖÆ
+        //gyroÄ£Ê½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½Ç¶È¿ï¿½ï¿½ï¿½
         //gyroscope angle control under gyro mode
         GIMBAL_absolute_angle_limit(&gimbal_set_control->gimbal_yaw_motor, add_yaw_angle);
     }
     else if (gimbal_set_control->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
-        //encondeÄ£Ê½ÏÂ£¬µç»ú±àÂë½Ç¶È¿ØÖÆ
+        //encondeÄ£Ê½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶È¿ï¿½ï¿½ï¿½
         //motor coding angle control under enconde mode
         GIMBAL_relative_angle_limit(&gimbal_set_control->gimbal_yaw_motor, add_yaw_angle);
     }
 
-    //pitchµç»úÄ£Ê½¿ØÖÆ
+    //pitchï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½
     //pitch motor mode control
     if (gimbal_set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
-        //rawÄ£Ê½ÏÂ£¬Ö±½Ó·¢ËÍ¿ØÖÆÖµ
+        //rawÄ£Ê½ï¿½Â£ï¿½Ö±ï¿½Ó·ï¿½ï¿½Í¿ï¿½ï¿½ï¿½Öµ
         //send the control value directly under raw mode
         gimbal_set_control->gimbal_pitch_motor.raw_cmd_current = add_pitch_angle;
     }
     else if (gimbal_set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
-        //gyroÄ£Ê½ÏÂ£¬ÍÓÂİÒÇ½Ç¶È¿ØÖÆ
+        //gyroÄ£Ê½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç½Ç¶È¿ï¿½ï¿½ï¿½
         //gyroscope angle control under gyro mode
         GIMBAL_absolute_angle_limit(&gimbal_set_control->gimbal_pitch_motor, add_pitch_angle);
     }
     else if (gimbal_set_control->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
-        //encondeÄ£Ê½ÏÂ£¬µç»ú±àÂë½Ç¶È¿ØÖÆ
+        //encondeÄ£Ê½ï¿½Â£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶È¿ï¿½ï¿½ï¿½
         //motor coding angle control under enconde mode
         GIMBAL_relative_angle_limit(&gimbal_set_control->gimbal_pitch_motor, add_pitch_angle);
     }
 }
-//ÍÓÂİÒÇ ¿ØÖÆÁ¿ÏŞÖÆ
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //gyroscope control value restriction
 static void GIMBAL_absolute_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
 {
@@ -600,19 +600,19 @@ static void GIMBAL_absolute_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
     {
         return;
     }
-    //µ±Ç°¿ØÖÆÎó²î½Ç¶È
+    //ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶ï¿½
     //current control error angle
     bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
-    //ÔÆÌ¨Ïà¶Ô½Ç¶È+ Îó²î½Ç¶È + ĞÂÔö½Ç¶È Èç¹û´óÓÚ ×î´ó»úĞµ½Ç¶È
+    //ï¿½ï¿½Ì¨ï¿½ï¿½Ô½Ç¶ï¿½+ ï¿½ï¿½ï¿½Ç¶ï¿½ + ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ğµï¿½Ç¶ï¿½
     //tripod relative angle + error angle + newly added angle
     //if greater than the maximum mechanical angle
     if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
     {
-        //Èç¹ûÊÇÍù×î´ó»úĞµ½Ç¶È¿ØÖÆ·½Ïò
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½Ç¶È¿ï¿½ï¿½Æ·ï¿½ï¿½ï¿½
         //if towards the maximum mechanical angle control direction
         if (add > 0.0f)
         {
-            //¼ÆËã³öÒ»¸ö×î´óµÄÌí¼Ó½Ç¶È£¬
+            //ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Ç¶È£ï¿½
             //calculate a maximum added angle
             add = gimbal_motor->max_relative_angle - gimbal_motor->relative_angle - bias_angle;
         }
@@ -635,7 +635,7 @@ static void GIMBAL_relative_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
         return;
     }
     gimbal_motor->relative_angle_set += add;
-    //ÊÇ·ñ³¬¹ı×î´ó ×îĞ¡Öµ
+    //ï¿½Ç·ñ³¬¹ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ğ¡Öµ
     //wheter exceed the maximum or the minimum values
     if (gimbal_motor->relative_angle_set > gimbal_motor->max_relative_angle)
     {
@@ -646,7 +646,7 @@ static void GIMBAL_relative_angle_limit(Gimbal_Motor_t *gimbal_motor, fp32 add)
         gimbal_motor->relative_angle_set = gimbal_motor->min_relative_angle;
     }
 }
-//ÔÆÌ¨¿ØÖÆ×´Ì¬Ê¹ÓÃ²»Í¬¿ØÖÆpid
+//ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½×´Ì¬Ê¹ï¿½Ã²ï¿½Í¬ï¿½ï¿½ï¿½ï¿½pid
 //tripod control state uses different control pid
 static void GIMBAL_Control_loop(Gimbal_Control_t *gimbal_control_loop)
 {
@@ -654,44 +654,44 @@ static void GIMBAL_Control_loop(Gimbal_Control_t *gimbal_control_loop)
     {
         return;
     }
-    //yaw²»Í¬Ä£Ê½¶ÔÓÚ²»Í¬µÄ¿ØÖÆº¯Êı
+    //yawï¿½ï¿½Í¬Ä£Ê½ï¿½ï¿½ï¿½Ú²ï¿½Í¬ï¿½Ä¿ï¿½ï¿½Æºï¿½ï¿½ï¿½
     //different modes for yaw correspond to different control function
     if (gimbal_control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
-        //raw¿ØÖÆ
+        //rawï¿½ï¿½ï¿½ï¿½
         //raw control
         gimbal_motor_raw_angle_control(&gimbal_control_loop->gimbal_yaw_motor);
     }
     else if (gimbal_control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
-        //gyro½Ç¶È¿ØÖÆ
+        //gyroï¿½Ç¶È¿ï¿½ï¿½ï¿½
         //gyro angle control
         gimbal_motor_absolute_angle_control(&gimbal_control_loop->gimbal_yaw_motor);
     }
     else if (gimbal_control_loop->gimbal_yaw_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
-        //enconde½Ç¶È¿ØÖÆ
+        //encondeï¿½Ç¶È¿ï¿½ï¿½ï¿½
         //enconde angle control
         gimbal_motor_relative_angle_control(&gimbal_control_loop->gimbal_yaw_motor);
     }
 
-    //pitch²»Í¬Ä£Ê½¶ÔÓÚ²»Í¬µÄ¿ØÖÆº¯Êı
+    //pitchï¿½ï¿½Í¬Ä£Ê½ï¿½ï¿½ï¿½Ú²ï¿½Í¬ï¿½Ä¿ï¿½ï¿½Æºï¿½ï¿½ï¿½
     //different modes for pitch correspond to different control functions
     if (gimbal_control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_RAW)
     {
-        //raw¿ØÖÆ
+        //rawï¿½ï¿½ï¿½ï¿½
         //raw control
         gimbal_motor_raw_angle_control(&gimbal_control_loop->gimbal_pitch_motor);
     }
     else if (gimbal_control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_GYRO)
     {
-        //gyro½Ç¶È¿ØÖÆ
+        //gyroï¿½Ç¶È¿ï¿½ï¿½ï¿½
         //gyro angle control
         gimbal_motor_absolute_angle_control(&gimbal_control_loop->gimbal_pitch_motor);
     }
     else if (gimbal_control_loop->gimbal_pitch_motor.gimbal_motor_mode == GIMBAL_MOTOR_ENCONDE)
     {
-        //enconde½Ç¶È¿ØÖÆ
+        //encondeï¿½Ç¶È¿ï¿½ï¿½ï¿½
         //enconde angle control
         gimbal_motor_relative_angle_control(&gimbal_control_loop->gimbal_pitch_motor);
     }
@@ -703,12 +703,12 @@ static void gimbal_motor_absolute_angle_control(Gimbal_Motor_t *gimbal_motor)
     {
         return;
     }
-    //½Ç¶È»·£¬ËÙ¶È»·´®¼¶pidµ÷ÊÔ
+    //ï¿½Ç¶È»ï¿½ï¿½ï¿½ï¿½Ù¶È»ï¿½ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½
     //angle loop
     //speed loop serial level pid testing
     gimbal_motor->motor_gyro_set = GIMBAL_PID_Calc(&gimbal_motor->gimbal_motor_absolute_angle_pid, gimbal_motor->absolute_angle, gimbal_motor->absolute_angle_set, gimbal_motor->motor_gyro);
     gimbal_motor->current_set = PID_Calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set);
-    //¿ØÖÆÖµ¸³Öµ
+    //ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Öµ
     //assign control value
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
@@ -720,12 +720,12 @@ static void gimbal_motor_relative_angle_control(Gimbal_Motor_t *gimbal_motor)
         return;
     }
 
-    //½Ç¶È»·£¬ËÙ¶È»·´®¼¶pidµ÷ÊÔ
+    //ï¿½Ç¶È»ï¿½ï¿½ï¿½ï¿½Ù¶È»ï¿½ï¿½ï¿½ï¿½ï¿½pidï¿½ï¿½ï¿½ï¿½
     //angle look
     //speed look serial level pid testing
     gimbal_motor->motor_gyro_set = GIMBAL_PID_Calc(&gimbal_motor->gimbal_motor_relative_angle_pid, gimbal_motor->relative_angle, gimbal_motor->relative_angle_set, gimbal_motor->motor_gyro);
     gimbal_motor->current_set = PID_Calc(&gimbal_motor->gimbal_motor_gyro_pid, gimbal_motor->motor_gyro, gimbal_motor->motor_gyro_set);
-    //¿ØÖÆÖµ¸³Öµ
+    //ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Öµ
     //assign control values
     gimbal_motor->given_current = (int16_t)(gimbal_motor->current_set);
 }
@@ -799,7 +799,7 @@ static fp32 GIMBAL_PID_Calc(Gimbal_PID_t *pid, fp32 get, fp32 set, fp32 error_de
     return pid->out;
 }
 
-//pidÊı¾İÇåÀí
+//pidï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //pid data cleanup
 static void Gimbal_PID_clear(Gimbal_PID_t *gimbal_pid_clear)
 {

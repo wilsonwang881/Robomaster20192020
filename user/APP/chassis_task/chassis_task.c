@@ -68,7 +68,7 @@ void chassis_mode_change_control_transit(chassis_move_t *chassis_move_transit);
 
 //底盘设置根据遥控器控制量
 //Set processing control
-static void chassis_set_contorl(chassis_move_t *chassis_move_control);
+static void chassis_set_control(chassis_move_t *chassis_move_control);
 
 //PID Calculation and motion analysis
 //底盘PID计算以及运动分解
@@ -113,7 +113,7 @@ void chassis_task(void *pvParameters)
 
         //底盘控制量设置
         //Set control; they mispelled control will fix once I pin down everywhere this is used
-        chassis_set_contorl(&chassis_move);
+        chassis_set_control(&chassis_move);
 
         //底盘控制PID计算
         //Calculating Chassis PID
@@ -345,7 +345,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
 
 //设置遥控器输入控制量
 //Set control type
-static void chassis_set_contorl(chassis_move_t *chassis_move_control)
+static void chassis_set_control(chassis_move_t *chassis_move_control)
 {
 
     if (chassis_move_control == NULL)
@@ -435,16 +435,17 @@ static void chassis_vector_to_mecanum_wheel_speed(const fp32 vx_set, const fp32 
     wheel_speed[3] = -vx_set + vy_set + (-CHASSIS_WZ_SET_SCALE - 1.0f) * MOTOR_DISTANCE_TO_CENTER * wz_set;
 }
 
-void custom_chassis_control(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, chassis_move_t *chassis_move_update, fp32 wheel_speed[4])
+void tokyo_drift(const fp32 vx_set, const fp32 vy_set, const fp32 wz_set, chassis_move_t *chassis_move_update, fp32 wheel_speed[4])
 {
-		//chassis_move_control_loop->motor_chassis[i].speed_set(5);
-		//(int16_t)(wheel_speed[i])
-		wheel_speed[0] = 100;
+    //chassis_move_control_loop->motor_chassis[i].speed_set(5);
+    //(int16_t)(wheel_speed[i])
+    wheel_speed[0] = 100;
     float yaw = chassis_move_update->chassis_yaw;
 }
 
 static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 {
+    //
     fp32 max_vector = 0.0f, vector_rate = 0.0f;
     fp32 temp = 0.0f;
     fp32 wheel_speed[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -452,7 +453,7 @@ static void chassis_control_loop(chassis_move_t *chassis_move_control_loop)
 
     //麦轮运动分解
     //Motion analysis of mecanum wheels
-		custom_chassis_control(chassis_move_control_loop->vx_set, chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, &chassis_move, wheel_speed);
+    tokyo_drift(chassis_move_control_loop->vx_set, chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, &chassis_move, wheel_speed);
     //chassis_vector_to_mecanum_wheel_speed(chassis_move_control_loop->vx_set,
     //                                      chassis_move_control_loop->vy_set, chassis_move_control_loop->wz_set, wheel_speed);
 
