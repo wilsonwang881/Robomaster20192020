@@ -1,4 +1,7 @@
 .DS_Store
-Project/DebugConfig/*
-Project/Listings/*
-Project/Objects/*
+#Project/DebugConfig/*.dbgconf
+#Project/Listings/*.map
+#Project/Listings/*.lst
+Project/Objects/*.o
+Project/Objects/*.d
+Project/Objects/*.crf
