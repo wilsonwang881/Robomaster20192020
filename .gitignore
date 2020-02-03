@@ -1,5 +1,4 @@
 .DS_Store
-Project/DebugConfig/
-Project/standard.*
-
-Project/
+Project/DebugConfig/*
+Project/Listings/*
+Project/Objects/*
